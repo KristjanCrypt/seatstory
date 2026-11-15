@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Find your seat — SeatStory</title>
+<meta name="description" content="Type your name to find your table.">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="icon" href="data:,">
+</head>
+<body data-page="share">
+<main class="share">
+  <header class="share__head">
+    <p class="share__kicker">SeatStory</p>
+    <h1>Find your seat</h1>
+    <p class="share__sub" id="share-sub">Type your name to see your table.</p>
+  </header>
+
+  <p class="banner banner--error" id="share-error" hidden></p>
+
+  <div id="share-body">
+    <label class="field">
+      <span class="field__label">Your name</span>
+      <input class="input input--big" type="search" id="share-query" placeholder="Type your name" autocomplete="off" autocapitalize="words" spellcheck="false">
+    </label>
+    <div class="share-results" id="share-results" aria-live="polite"></div>
+    <p class="muted small" id="share-count"></p>
+  </div>
+
+  <footer class="share__foot muted small">Made with SeatStory</footer>
+</main>
+
+<script src="assets/config.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

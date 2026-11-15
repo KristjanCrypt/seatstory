@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "properties": {
+    "verdict": { "type": "string", "enum": ["pass", "fail"] },
+    "summary": { "type": "string", "description": "One or two sentences: what was checked and the outcome." },
+    "issues": {
+      "type": "array",
+      "description": "Concrete defects that must be fixed. Empty when verdict is pass.",
+      "items": { "type": "string" }
+    }
+  },
+  "required": ["verdict", "summary", "issues"],
+  "additionalProperties": false
+}

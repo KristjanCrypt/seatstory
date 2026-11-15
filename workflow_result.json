@@ -1,0 +1,8 @@
+{
+  "outcome": "pass",
+  "last_review": {
+    "verdict": "pass",
+    "summary": "Failide ülevaatus, HTML/JS süntaksikontrollid ning käivitatud CSV-, salvestus-, jagamis- ja mitmelehelise A2 PDF-i testid ei tuvastanud puudusi ega lisatud väliseid sõltuvusi. Kirjutuskaitse takistas brauseritestimist: 390 px kuvamine, puutejuhtimine, Network-paneel ja telefoniga QR-skannimine jäid otse kinnitamata.",
+    "issues": []
+  }
+}
