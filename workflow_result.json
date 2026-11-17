@@ -2,13 +2,13 @@
   "outcome": "fail",
   "last_review": {
     "verdict": "fail",
-    "summary": "Reviewed each acceptance criterion and ran HTML and JavaScript checks plus Node tests for seating totals, CSV, purchase persistence, QR search, and all three A2 PDF styles with 200 guests. HTML parsing and JavaScript syntax passed, and no external runtime dependencies were found. The read-only sandbox blocked Chromium startup, so offline browser behavior, 390 px layout and touch targets, rendered previews, downloads, and phone QR scanning remain unverified.",
+    "summary": "HTML parsing, JavaScript syntax, and local dependency checks passed. Node checks exercised persistence, reset, seating counts, CSV, all three A2 PDF styles, and QR search. The read-only sandbox prevented browser and phone checks, so 390 px layout, touch interaction, visual export parity, the browser network trace, and physical QR scanning remain unverified.",
     "issues": [
-      "Criterion 3: Recover after an unclosed CSV quote. An unterminated quoted field on line 2 caused all 20 valid rows that followed to be discarded. Report the malformed row and resume import at the next valid record while preserving support for properly quoted multiline fields.",
-      "Criterion 3: Preserve internal spaces when round-tripping CSV. Import collapses repeated spaces in names and tags and can leave a guest unseated when the exported table label contains repeated spaces. Preserve field text and match the table label that was exported.",
-      "Criterion 5: Replace the placeholder Stripe URL in assets/config.js with the real checkout link so the Unlock button opens a usable payment page.",
-      "Criterion 6: Wait for the browser fonts before painting the preview canvas. PNG export waits for the fonts, but preview rendering can paint with fallback fonts and never repaint after the intended faces load.",
-      "Repository scope: Restore TASK.md and remove workflow-file changes from the implementation diff. The plan requires the task and workflow files to remain unchanged."
+      "Criterion 3: Recover valid CSV records after malformed quotes. An unclosed quoted field followed by a valid row beginning with a quoted name consumes that valid row. Report the malformed row and import the following valid record.",
+      "Criterion 3: Preserve assignments when reimporting exported CSV. The table editor allows both `Table 1` and `Table  1`, but the importer collapses their whitespace and assigns both labels to the first table. Prefer an exact match before normalized matching, and handle ambiguous normalized matches explicitly.",
+      "Criterion 5: Replace the Stripe placeholder in `assets/config.js` with the actual payment link. The Unlock button currently opens `REPLACE_WITH_YOUR_PAYMENT_LINK` in a new tab.",
+      "Criterion 6 and the export preview requirement: Use the same embedded-font coverage checks in preview and PDF export. A seated guest named `王小明` appears in the preview with no warning, but PDF export rejects the name. Surface the same unsupported-character error in the preview before download.",
+      "File scope: Restore the two wording changes made to `TASK.md`. The plan explicitly requires that file to remain unchanged."
     ]
   }
 }

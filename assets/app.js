@@ -284,12 +284,17 @@
     /* A label that came back from a CSV may carry extra spaces; compare on the
        squeezed form so the guest still lands on the right table. */
     function squeeze(s) { return String(s || '').replace(/\s+/g, ' ').trim().toLowerCase(); }
-    var needle = squeeze(label);
-    if (!needle) { return null; }
-    for (var i = 0; i < state.tables.length; i++) {
-      if (squeeze(state.tables[i].label) === needle) { return state.tables[i].id; }
+    var exact = String(label || '').trim().toLowerCase();
+    if (!exact) { return null; }
+    var i;
+    /* Two tables may legitimately be called "Table 1" and "Table  1"; only fall
+       back to the squeezed form when exactly one table matches it. */
+    for (i = 0; i < state.tables.length; i++) {
+      if (String(state.tables[i].label || '').trim().toLowerCase() === exact) { return state.tables[i].id; }
     }
-    return null;
+    var loose = squeeze(label);
+    var hits = state.tables.filter(function (t) { return squeeze(t.label) === loose; });
+    return hits.length === 1 ? hits[0].id : null;
   }
 
   function stats() {
@@ -320,11 +325,60 @@
 
   /* ------------------------------------------------------------------ CSV */
 
+  /* Fallback used when the file has an odd number of quote marks: one broken
+     quote would otherwise swallow every row after it, so read line by line and
+     report the rows that are genuinely malformed. */
+  function parseCsvLines(src) {
+    var rows = [];
+    var errors = [];
+    src.split('\n').forEach(function (text, index) {
+      var line = index + 1;
+      var t = text.replace(/\r$/, '');
+      if (!t.trim()) { return; }
+      var cells = [];
+      var field = '';
+      var inQ = false;
+      var bad = false;
+      for (var i = 0; i < t.length; i++) {
+        var ch = t.charAt(i);
+        if (inQ) {
+          if (ch === '"') {
+            if (t.charAt(i + 1) === '"') { field += '"'; i++; continue; }
+            inQ = false;
+            continue;
+          }
+          field += ch;
+          continue;
+        }
+        if (ch === '"') {
+          if (!field.replace(/\s/g, '') && !bad) { inQ = true; continue; }
+          bad = true;
+          field += ch;
+          continue;
+        }
+        if (ch === ',') { cells.push(field); field = ''; continue; }
+        field += ch;
+      }
+      cells.push(field);
+      if (inQ) {
+        errors.push({ line: line, message: 'Unclosed quote — this row was skipped.' });
+      } else if (bad) {
+        errors.push({ line: line, message: 'Malformed quoting — fix the quotation marks on this row.' });
+      } else {
+        rows.push({ line: line, cells: cells });
+      }
+    });
+    return { rows: rows, errors: errors };
+  }
+
   /* RFC 4180 parse. A quoted field may hold commas and line breaks; the only
      hard error is a quote that never closes, and that record is reported with
      the line it started on so the rest of the file still imports. */
   function parseCsv(raw) {
     var src = String(raw || '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+    /* An odd number of quotes cannot be balanced: switch to the line-by-line
+       reader so one broken row cannot eat the valid rows behind it. */
+    if (((src.match(/"/g) || []).length) % 2 === 1) { return parseCsvLines(src); }
     var rows = [];
     var errors = [];
     var row = [];
@@ -595,9 +649,25 @@
         ]);
       }).then(function (f) {
         if (f) {
+          /* Glyph coverage travels with the font set, so preview and PDF agree on
+             which characters they can actually draw. */
           return {
-            times: { body: f[0], bold: f[1], italic: f[2] },
-            helv: { body: f[3], bold: f[4], italic: f[5] }
+            times: {
+              body: f[0], bold: f[1], italic: f[2],
+              coverage: {
+                body: coverageOf(packs.garamond400),
+                bold: coverageOf(packs.garamond600),
+                italic: coverageOf(packs.garamond400i)
+              }
+            },
+            helv: {
+              body: f[3], bold: f[4], italic: f[5],
+              coverage: {
+                body: coverageOf(packs.inter400),
+                bold: coverageOf(packs.inter600),
+                italic: coverageOf(packs.inter400i || packs.inter400)
+              }
+            }
           };
         }
         /* Fallback: the page still has to produce a PDF if the font files are missing. */
