@@ -1,4 +1,4 @@
-[00:39:51] === REVIEW-ONLY ===
-[00:39:51] -> Codex review
-[00:43:28] <- Codex review valmis 217s, exit=0
-[00:43:28] REVIEW: fail
+[00:47:54] === REVIEW-ONLY ===
+[00:47:54] -> Codex review
+[00:50:54] <- Codex review valmis 179s, exit=0
+[00:50:54] REVIEW: fail

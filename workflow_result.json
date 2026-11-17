@@ -2,12 +2,10 @@
   "outcome": "fail",
   "last_review": {
     "verdict": "fail",
-    "summary": "Kontrollisin kõiki kriteeriume lähtekoodist ning käivitasin HTML-i, JavaScripti, CSV, salvestuse, istekohtade loenduse, PDF-i ja QR-andmete kontrollid. Kõigi kolme stiili 200 külalise PDF-id olid mitmeleheküljelised A2-formaadis ja sisaldasid tekstikäske, kuid keskkond blokeeris brauseri käivitamise, mistõttu päris brauseri, Network-paneeli ja telefoniga skannimise katsed jäid kinnitamata.",
+    "summary": "HTML parsing and JavaScript syntax checks passed, and Node checks exercised seating counts, purchase and reset handlers, share search, and A2 vector PDFs in all three styles. CSV recovery and dependency scope failed, and Chromium’s read-only profile error left live offline behavior, 390 px layout, downloads, and phone scanning unverified.",
     "issues": [
-      "Kriteerium 3. Paranda CSV veataaste nii, et üks vigase jutumärgistusega kirje ei jätaks vahele kehtivat mitmerealist kirjet. Katses jättis vigane kirje `\"bad\"junk,,` välja ka sellele eelnenud kehtiva neljarealise jutumärkides nime ja teatas selle ridadel ekslikult vigadest.",
-      "Kriteerium 4. Luba CSV impordiraportis pikkadel tundmatutel lauanimedel murduda. Raporti tekstil puudub pika sõna murdmine ning ümbritsev `details` peidab üle ulatuva veateate 390 px vaates.",
-      "Kriteerium 5. Asenda `assets/config.js` Stripe’i kohatäitja toimiva ostulingiga. Ostunupp avab praegu uues aknas aadressi `https://buy.stripe.com/REPLACE_WITH_YOUR_PAYMENT_LINK`.",
-      "Kriteerium 8 ja plaani failipiirang. Eemalda rakendusest lisatud Fontkit ning Interi ja EB Garamondi fondipaketid. Kasuta eelvaates ja PNG-s süsteemifonte ning PDF-is sisefonte. Kõrvalda ka plaani faililoendisse mittekuuluvad maandumisleht, näidispildid ja märkmefail."
+      "Fix CSV error recovery so an unclosed quoted row followed immediately by a valid quoted multiline name imports the valid record and reports only the malformed row. The current parser drops the valid multiline guest and reports a second error on its closing line.",
+      "Restore the planned five-file scope and use system and built-in PDF fonts with the existing PDF and QR libraries. Remove the added Fontkit dependency, embedded font assets, landing page, and sample images, and update the app to remove its references to those additions."
     ]
   }
 }

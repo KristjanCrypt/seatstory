@@ -329,48 +329,39 @@
      quote would otherwise swallow every row after it, so read line by line and
      report the rows that are genuinely malformed. */
   function parseCsvLines(src) {
+    var lines = src.split('\n');
     var rows = [];
     var errors = [];
-    src.split('\n').forEach(function (text, index) {
-      var line = index + 1;
-      var t = text.replace(/\r$/, '');
-      if (!t.trim()) { return; }
-      var cells = [];
-      var field = '';
-      var inQ = false;
-      var bad = false;
-      var justClosed = false;
-      for (var i = 0; i < t.length; i++) {
-        var ch = t.charAt(i);
-        if (inQ) {
-          if (ch === '"') {
-            if (t.charAt(i + 1) === '"') { field += '"'; i++; continue; }
-            inQ = false;
-            justClosed = true;
-            continue;
-          }
-          field += ch;
-          continue;
-        }
-        if (ch === '"') {
-          if (!field.replace(/\s/g, '') && !bad) { inQ = true; continue; }
-          bad = true;
-          field += ch;
-          continue;
-        }
-        if (ch === ',') { cells.push(field); field = ''; justClosed = false; continue; }
-        if (justClosed && ch.trim()) { bad = true; justClosed = false; }
-        field += ch;
+    for (var idx = 0; idx < lines.length; idx++) {
+      var text = lines[idx].replace(/\r$/, '');
+      if (!text.trim()) { continue; }
+      var line = idx + 1;
+      var single = parseCsvRecords(text);
+      if (!single.errors.length && single.rows.length === 1) {
+        rows.push({ line: line, cells: single.rows[0].cells });
+        continue;
       }
-      cells.push(field);
-      if (inQ) {
-        errors.push({ line: line, message: 'Unclosed quote — this row was skipped.' });
-      } else if (bad) {
-        errors.push({ line: line, message: 'Malformed quoting — fix the quotation marks on this row.' });
-      } else {
-        rows.push({ line: line, cells: cells });
+      /* The line ends inside a quote — maybe a name legitimately spans lines.
+         Pull in following lines until the quoting balances and the block parses. */
+      var fixed = false;
+      var limit = Math.min(lines.length, idx + 40);
+      for (var j = idx + 1; j < limit; j++) {
+        var block = parseCsvRecords(lines.slice(idx, j + 1).join('\n'));
+        if (!block.errors.length && !block.dangling && block.rows.length === 1) {
+          rows.push({ line: line, cells: block.rows[0].cells });
+          idx = j;
+          fixed = true;
+          break;
+        }
       }
-    });
+      if (!fixed) {
+        errors.push({
+          line: line,
+          message: single.errors.length ? single.errors[0].message
+            : 'Malformed quoting — fix the quotation marks on this row.'
+        });
+      }
+    }
     return { rows: rows, errors: errors };
   }
 
