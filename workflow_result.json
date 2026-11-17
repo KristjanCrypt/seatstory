@@ -2,15 +2,13 @@
   "outcome": "fail",
   "last_review": {
     "verdict": "fail",
-    "summary": "Reviewed all acceptance criteria through source inspection and available runtime checks. JavaScript syntax, the 20-row CSV round trip, seating totals, paid-state persistence, QR generation and parsing, and A2 PDF generation for all three styles passed the cases exercised, including the 200-guest fixture. The read-only sandbox blocked Chromium startup, so browser-only checks for offline loading, mobile layout and touch, rendered output, downloads, and a phone scan remain unverified.",
+    "summary": "Reviewed each acceptance criterion and ran HTML and JavaScript checks plus Node tests for seating totals, CSV, purchase persistence, QR search, and all three A2 PDF styles with 200 guests. HTML parsing and JavaScript syntax passed, and no external runtime dependencies were found. The read-only sandbox blocked Chromium startup, so offline browser behavior, 390 px layout and touch targets, rendered previews, downloads, and phone QR scanning remain unverified.",
     "issues": [
-      "Criterion 3: Preserve valid quoted CSV fields containing line breaks. The parser treats every newline inside quotes as an unclosed quote and discards the record. Retain row-numbered recovery for genuinely malformed records.",
-      "Criterion 5: Fix the restore-purchase markup in index.html. The same label contains both the unlock-code input and the Restore button. Associate the label explicitly with the input and move the button outside it.",
-      "Criterion 6: Wait for the required browser font faces before drawing preview and PNG canvases. Render Midnight metadata with the same font style in Canvas and PDF, since Canvas requests italic while the PDF embeds upright Inter for that text.",
-      "Criterion 6: Detect unsupported characters using the embedded font's glyph coverage. A guest named `漢字 😀` produced a PDF with no warning because width measurement succeeded despite missing glyphs.",
-      "Criterion 6: Surface PNG encoding failures. If `canvas.toBlob` returns null, report which page failed and suppress the download success message.",
-      "Criterion 8: Remove the hardcoded `https://your-site.example/share.html` example from assets/app.js. PAYMENT_URL is the sole allowed hardcoded HTTP(S) address in the new application files.",
-      "Repository scope: Add all six required vendor files to Git so a clean checkout can load the app offline. Exclude the five unlisted JPEGs under assets/samples from the deliverable."
+      "Criterion 3: Recover after an unclosed CSV quote. An unterminated quoted field on line 2 caused all 20 valid rows that followed to be discarded. Report the malformed row and resume import at the next valid record while preserving support for properly quoted multiline fields.",
+      "Criterion 3: Preserve internal spaces when round-tripping CSV. Import collapses repeated spaces in names and tags and can leave a guest unseated when the exported table label contains repeated spaces. Preserve field text and match the table label that was exported.",
+      "Criterion 5: Replace the placeholder Stripe URL in assets/config.js with the real checkout link so the Unlock button opens a usable payment page.",
+      "Criterion 6: Wait for the browser fonts before painting the preview canvas. PNG export waits for the fonts, but preview rendering can paint with fallback fonts and never repaint after the intended faces load.",
+      "Repository scope: Restore TASK.md and remove workflow-file changes from the implementation diff. The plan requires the task and workflow files to remain unchanged."
     ]
   }
 }

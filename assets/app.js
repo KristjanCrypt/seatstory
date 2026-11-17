@@ -281,11 +281,13 @@
   }
 
   function findTableByLabel(label) {
-    var needle = String(label || '').trim().toLowerCase();
+    /* A label that came back from a CSV may carry extra spaces; compare on the
+       squeezed form so the guest still lands on the right table. */
+    function squeeze(s) { return String(s || '').replace(/\s+/g, ' ').trim().toLowerCase(); }
+    var needle = squeeze(label);
     if (!needle) { return null; }
     for (var i = 0; i < state.tables.length; i++) {
-      var t = state.tables[i];
-      if (t.label.trim().toLowerCase() === needle) { return t.id; }
+      if (squeeze(state.tables[i].label) === needle) { return state.tables[i].id; }
     }
     return null;
   }
@@ -333,6 +335,7 @@
     var line = 1;
     var rowLine = 1;
     var quoteLine = 1;
+    var rowStartIdx = 0;
     var i = 0;
 
     function pushRow() {
@@ -347,6 +350,7 @@
       row = [];
       bad = false;
       rowLine = line;
+      rowStartIdx = i + 1;
     }
 
     while (i < src.length) {
@@ -385,7 +389,17 @@
     }
 
     if (inQuotes) {
+      /* A quote that never closes would swallow every following row. Report the
+         record it started, then read the rest of the file from the next line so
+         the valid rows behind it still import. */
       errors.push({ line: quoteLine, message: 'Unclosed quote — the row starting on this line was skipped.' });
+      var nl = src.indexOf('\n', rowStartIdx);
+      if (nl >= 0 && nl + 1 < src.length) {
+        var offset = src.slice(0, nl + 1).split('\n').length - 1;
+        var sub = parseCsv(src.slice(nl + 1));
+        sub.rows.forEach(function (r) { rows.push({ line: r.line + offset, cells: r.cells }); });
+        sub.errors.forEach(function (e) { errors.push({ line: e.line + offset, message: e.message }); });
+      }
     } else if (field !== '' || row.length) {
       pushRow();
     }
@@ -448,7 +462,7 @@
       /* A quoted field may legally span lines; a name or a table label cannot,
          so fold the break into a space instead of printing a split line. */
       function oneLine(value) {
-        return String(value == null ? '' : value).replace(/\s*\n\s*/g, ' ').replace(/\s+/g, ' ').trim();
+        return String(value == null ? '' : value).replace(/\s*\n\s*/g, ' ').trim();
       }
       var name = oneLine(cells[idx.name]);
       if (!name) {
@@ -865,7 +879,9 @@
     /* Never reserve more columns than there are blocks to fill them: two tables
        on a three-column poster should use two centred columns, not one column
        and two empty ones. */
-    var cols = Math.max(1, Math.min(cfg.columns, blocks.length));
+    /* Only the poster grid balances its columns; the QR sheet lays its own
+       directory out and must keep the column count it asks for. */
+    var cols = cfg.balance === false ? cfg.columns : Math.max(1, Math.min(cfg.columns, blocks.length));
     var colW = (cfg.contentW - cfg.gap * (cols - 1)) / cols;
     var xShift = (cfg.contentW - (cols * colW + (cols - 1) * cfg.gap)) / 2;
     var bottom = cfg.bottom;
@@ -917,7 +933,7 @@
       /* Two tables on a two-column poster used to stack in the left column and
          leave the right side empty; balance as soon as there is more than one
          block, not only when the blocks already outnumber the columns. */
-      if (blocks.length >= 2 && totalHeight <= columnHeight * cols) {
+      if ((cfg.balance !== false) && blocks.length >= 2 && totalHeight <= columnHeight * cols) {
         var prefix = [0];
         heights.forEach(function (h, i) { prefix.push(prefix[i] + h); });
         var n = heights.length;
@@ -1338,6 +1354,7 @@
       mm: mm,
       margin: S.margin,
       columns: columns,
+      balance: false,
       gap: gap,
       contentW: contentW,
       bottom: bottom,
@@ -2759,6 +2776,9 @@
     box.appendChild(el('p', 'preview__note', 'Building the preview…'));
 
     try {
+      /* Canvas does not wait for @font-face: paint only once the poster faces are
+         in, so the preview and the PNG match the PDF instead of a fallback serif. */
+      await ensureFontsReady();
       var fonts = await fontsFor(state.settings.style);
       if (seq !== exportState.seq) { return; }
       clear(box);
