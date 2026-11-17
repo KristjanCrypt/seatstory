@@ -2,7 +2,7 @@
  * SeatStory — wedding seating chart.
  *
  * One classic script (no modules, no build step) so the app also works when
- * app.html is opened straight from disk. Nothing is fetched after load and
+ * index.html is opened straight from disk. Nothing is fetched after load and
  * nothing is sent anywhere: guests, tables and settings live in localStorage
  * under the key "seatstory_v1", purchase entitlement included.
  */
@@ -339,12 +339,14 @@
       var field = '';
       var inQ = false;
       var bad = false;
+      var justClosed = false;
       for (var i = 0; i < t.length; i++) {
         var ch = t.charAt(i);
         if (inQ) {
           if (ch === '"') {
             if (t.charAt(i + 1) === '"') { field += '"'; i++; continue; }
             inQ = false;
+            justClosed = true;
             continue;
           }
           field += ch;
@@ -356,7 +358,8 @@
           field += ch;
           continue;
         }
-        if (ch === ',') { cells.push(field); field = ''; continue; }
+        if (ch === ',') { cells.push(field); field = ''; justClosed = false; continue; }
+        if (justClosed && ch.trim()) { bad = true; justClosed = false; }
         field += ch;
       }
       cells.push(field);
@@ -374,11 +377,7 @@
   /* RFC 4180 parse. A quoted field may hold commas and line breaks; the only
      hard error is a quote that never closes, and that record is reported with
      the line it started on so the rest of the file still imports. */
-  function parseCsv(raw) {
-    var src = String(raw || '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
-    /* An odd number of quotes cannot be balanced: switch to the line-by-line
-       reader so one broken row cannot eat the valid rows behind it. */
-    if (((src.match(/"/g) || []).length) % 2 === 1) { return parseCsvLines(src); }
+  function parseCsvRecords(src) {
     var rows = [];
     var errors = [];
     var row = [];
@@ -390,6 +389,7 @@
     var rowLine = 1;
     var quoteLine = 1;
     var rowStartIdx = 0;
+    var danglingQuote = false;
     var i = 0;
 
     function pushRow() {
@@ -443,6 +443,7 @@
     }
 
     if (inQuotes) {
+      danglingQuote = true;
       /* A quote that never closes would swallow every following row. Report the
          record it started, then read the rest of the file from the next line so
          the valid rows behind it still import. */
@@ -458,7 +459,28 @@
       pushRow();
     }
 
-    return { rows: rows, errors: errors };
+    return { rows: rows, errors: errors, dangling: danglingQuote };
+  }
+
+  /* Read the file twice when the quoting is suspect: the RFC reader keeps legal
+     multi-line fields, the line reader keeps the rows that a broken quote would
+     otherwise swallow. Whichever reading preserves more guests wins. */
+  function parseCsv(raw) {
+    var src = String(raw || '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+    var multi = parseCsvRecords(src);
+    if (!multi.errors.length) { return { rows: multi.rows, errors: multi.errors }; }
+    /* The RFC reader only loses rows when the quoting is broken (it always raises
+       an error then). Read the file line by line as well and keep whichever
+       reading preserves more guests; a legal multi-line field has no errors and
+       never reaches this comparison. */
+    var byLine = parseCsvLines(src);
+    var kept = function (list) {
+      return list.filter(function (r) { return !(r.cells.length === 1 && String(r.cells[0]).trim() === ''); }).length;
+    };
+    if (kept(byLine.rows) > kept(multi.rows)) {
+      return { rows: byLine.rows, errors: byLine.errors };
+    }
+    return { rows: multi.rows, errors: multi.errors };
   }
 
   function csvCell(value) {
@@ -1434,7 +1456,10 @@
         if (index === 0) {
           drawStack(page, titleStack, S.margin.l, contentW, S.margin.t, S, mm);
           var qx = S.margin.l + (contentW - qrSize) / 2;
-          page.shapes.push({ t: 'rect', x: qx - 6, y: qrTop - 6, w: qrSize + 12, h: qrSize + 12, fill: '#ffffff', stroke: null });
+          /* A QR code needs four modules of light margin; a fixed 6 mm is too
+             thin for a low-density code, where the poster itself shows through. */
+          var quiet = (qrSize / (matrix.count + 8)) * 4;
+          page.shapes.push({ t: 'rect', x: qx - quiet, y: qrTop - quiet, w: qrSize + quiet * 2, h: qrSize + quiet * 2, fill: '#ffffff', stroke: null });
           page.shapes.push({ t: 'qr', x: qx, y: qrTop, size: qrSize, matrix: matrix, dark: '#101319' });
           page.texts.push({
             t: 'text', text: 'Scan the code, type your name, find your table.',

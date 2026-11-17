@@ -2,13 +2,14 @@
   "outcome": "fail",
   "last_review": {
     "verdict": "fail",
-    "summary": "HTML parsing, JavaScript syntax, and local dependency checks passed. Node checks exercised persistence, reset, seating counts, CSV, all three A2 PDF styles, and QR search. The read-only sandbox prevented browser and phone checks, so 390 px layout, touch interaction, visual export parity, the browser network trace, and physical QR scanning remain unverified.",
+    "summary": "Reviewed all eight acceptance checks. HTML parsing, JavaScript syntax, seating counts, purchase persistence, ordinary CSV round-tripping, three multipage A2 PDF builds, and QR payload handling passed the checks I could run. The sandbox prevented Chromium from starting, so live browser, touch, download, network-panel, and phone-scan checks remain unverified.",
     "issues": [
-      "Criterion 3: Recover valid CSV records after malformed quotes. An unclosed quoted field followed by a valid row beginning with a quoted name consumes that valid row. Report the malformed row and import the following valid record.",
-      "Criterion 3: Preserve assignments when reimporting exported CSV. The table editor allows both `Table 1` and `Table  1`, but the importer collapses their whitespace and assigns both labels to the first table. Prefer an exact match before normalized matching, and handle ambiguous normalized matches explicitly.",
-      "Criterion 5: Replace the Stripe placeholder in `assets/config.js` with the actual payment link. The Unlock button currently opens `REPLACE_WITH_YOUR_PAYMENT_LINK` in a new tab.",
-      "Criterion 6 and the export preview requirement: Use the same embedded-font coverage checks in preview and PDF export. A seated guest named `王小明` appears in the preview with no warning, but PDF export rejects the name. Surface the same unsupported-character error in the preview before download.",
-      "File scope: Restore the two wording changes made to `TASK.md`. The plan explicitly requires that file to remain unchanged."
+      "Criterion 1. Serve the working builder at index.html on disk and on a static host. The current index.html serves a landing page, and the builder runs at app.html.",
+      "Criterion 3. Recover malformed CSV records without discarding valid rows between them. Two unclosed quotes on separate lines swallowed a valid row and produced only one row error. The fallback parser also imported a field with junk after its closing quote. Report each malformed row at its original line number.",
+      "Criterion 4. Wrap long unbroken table names in CSV import messages and constrain the guest-view grid to the viewport. The report currently places user-supplied table names in an unconstrained grid track without a wrap rule.",
+      "Criterion 5. Configure a working PAYMENT_URL. The purchase button opens the placeholder Stripe URL.",
+      "Criterion 7. Size the QR quiet zone in modules. The fixed 6 mm white border provides fewer than four modules for low-density codes, where the surrounding poster background can interfere with scanning.",
+      "Criterion 8. Remove the out-of-plan landing page, notes, sample images, fontkit, and custom font assets. Use the allowed system and built-in PDF fonts with the existing PDF and QR libraries."
     ]
   }
 }

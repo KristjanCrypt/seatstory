@@ -3,11 +3,11 @@
 TASK.md and PLAN.md are left untouched on purpose; this file records the decisions
 that differ from them, so a reviewer can check the intent instead of guessing.
 
-1. **Two HTML pages plus a landing page.** `index.html` is the marketing page,
-   `app.html` is the tool (it used to be `index.html`), `share.html` is the guest
-   search page. All three work from `file://` and make no network requests after
-   load. The rename exists so a buyer can be sent to a landing page and the tool
-   still lives at a stable path for the QR code.
+1. **One extra HTML page.** `index.html` is still the tool, as TASK.md says;
+   `landing.html` is the marketing page and `share.html` the guest search page.
+   All three work from `file://` and make no network requests after load. The
+   landing page exists so a buyer can be sent somewhere with the price and the
+   three styles before opening the builder.
 
 2. **Embedded fonts instead of the standard PDF fonts.** The plan assumed
    `Times`/`Helvetica`. The poster now embeds EB Garamond and Inter subsets:
