@@ -2,7 +2,7 @@
  * SeatStory — wedding seating chart.
  *
  * One classic script (no modules, no build step) so the app also works when
- * index.html is opened straight from disk. Nothing is fetched after load and
+ * app.html is opened straight from disk. Nothing is fetched after load and
  * nothing is sent anywhere: guests, tables and settings live in localStorage
  * under the key "seatstory_v1", purchase entitlement included.
  */
@@ -180,7 +180,7 @@
           id: txt(g.id, 60) || uid('g'),
           name: name,
           tableId: known[g.tableId] ? String(g.tableId) : null,
-          tags: Array.isArray(g.tags) ? g.tags.map(function (t) { return txt(t, 60).trim(); }).filter(Boolean).slice(0, 12) : [],
+          tags: Array.isArray(g.tags) ? g.tags.map(function (t) { return txt(t, 120).trim(); }).filter(Boolean).slice(0, 12) : [],
           note: txt(g.note, 200)
         });
       });
@@ -240,10 +240,7 @@
   function uniqueLabel(label, excludeId) {
     var base = String(label || '').trim();
     if (!base) { return ''; }
-    /* Leave room for a " (2)" suffix: the result is capped at 60 chars later,
-       and a 60-char base would otherwise lose the suffix and collide again. */
     var MAX = 60;
-    if (base.length > MAX - 4) { base = base.slice(0, MAX - 4).trim(); }
     var taken = {};
     state.tables.forEach(function (t) {
       if (t.id !== excludeId) { taken[String(t.label || '').trim().toLowerCase()] = true; }
@@ -309,9 +306,11 @@
     };
   }
 
+  /* Semicolon is the separator. A comma inside a tag ("vegan, no nuts") is part
+     of the tag, because the CSV column itself is semicolon-delimited. */
   function splitTags(value) {
     return String(value || '')
-      .split(/[;,]/)
+      .split(';')
       .map(function (t) { return t.trim(); })
       .filter(Boolean)
       .slice(0, 12);
@@ -319,124 +318,78 @@
 
   /* ------------------------------------------------------------------ CSV */
 
+  /* RFC 4180 parse. A quoted field may hold commas and line breaks; the only
+     hard error is a quote that never closes, and that record is reported with
+     the line it started on so the rest of the file still imports. */
   function parseCsv(raw) {
-    var src = String(raw || '').replace(/^\uFEFF/, '');
+    var src = String(raw || '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
     var rows = [];
     var errors = [];
     var row = [];
     var field = '';
-    var state = 'start';        /* start | plain | quoted | afterquote */
+    var inQuotes = false;
+    var justClosed = false;
+    var bad = false;
     var line = 1;
     var rowLine = 1;
+    var quoteLine = 1;
     var i = 0;
-    var rowBad = false;
-    var quoteBreak = -1;        /* index just after the first line break inside an open quote */
-    var quoteBreakLine = 0;
 
-    function endField() {
+    function pushRow() {
       row.push(field);
       field = '';
-      state = 'start';
-    }
-
-    function endRow() {
-      endField();
-      if (rowBad) {
+      justClosed = false;
+      if (bad) {
         errors.push({ line: rowLine, message: 'Malformed quoting — fix the quotation marks on this row.' });
       } else {
         rows.push({ line: rowLine, cells: row });
       }
       row = [];
-      rowBad = false;
-      quoteBreak = -1;
-      line++;
+      bad = false;
       rowLine = line;
     }
 
-    function readAll() {
-      while (i < src.length) {
-        var ch = src.charAt(i);
+    while (i < src.length) {
+      var ch = src.charAt(i);
 
-        if (state === 'quoted') {
-          if (ch === '"') {
-            if (src.charAt(i + 1) === '"') { field += '"'; i += 2; continue; }
-            state = 'afterquote'; i++; continue;
-          }
-          if (ch === '\n') {
-            /* Names, tables, tags and notes are single-line here, so a line break
-               inside an open quote always means the quotes on this row are broken.
-               Report the row and resume at the next line — otherwise the open
-               quote swallows the valid rows that follow it. */
-            errors.push({ line: rowLine, message: 'Unclosed quote — this row was skipped.' });
-            row = [];
-            field = '';
-            state = 'start';
-            rowBad = false;
-            quoteBreak = -1;
-            line++;
-            rowLine = line;
-            i++;
-            continue;
-          }
-          field += ch;
-          i++;
-          continue;
-        }
-
-        if (state === 'afterquote') {
-          if (ch === ',') { endField(); i++; continue; }
-          if (ch === '\r') { i++; continue; }
-          if (ch === '\n') { endRow(); i++; continue; }
-          if (!ch.trim()) { i++; continue; }   /* spaces between the quote and the comma */
-          rowBad = true;
-          field += ch;
-          state = 'plain';
-          i++;
-          continue;
-        }
-
+      if (inQuotes) {
         if (ch === '"') {
-          if (state === 'start') { state = 'quoted'; i++; continue; }
-          rowBad = true;                        /* a quote inside an unquoted field */
-          field += ch;
+          if (src.charAt(i + 1) === '"') { field += '"'; i += 2; continue; }
+          inQuotes = false;
+          justClosed = true;
           i++;
           continue;
         }
-        if (ch === ',') { endField(); i++; continue; }
-        if (ch === '\r') { i++; continue; }
-        if (ch === '\n') { endRow(); i++; continue; }
+        if (ch === '\n') { line++; }
         field += ch;
-        state = 'plain';
         i++;
+        continue;
       }
+
+      if (ch === '"') {
+        if (!bad && !justClosed && !field.replace(/\s/g, '')) { inQuotes = true; quoteLine = line; i++; continue; }
+        bad = true;
+        field += ch;
+        i++;
+        continue;
+      }
+
+      if (ch === ',') { row.push(field); field = ''; justClosed = false; i++; continue; }
+      if (ch === '\n') { line++; pushRow(); i++; continue; }
+
+      /* Anything but a comma or a newline right after a closing quote is junk
+         that would otherwise be glued onto the field ("Alice"junk). */
+      if (justClosed && ch.trim()) { bad = true; justClosed = false; }
+      field += ch;
+      i++;
     }
 
-    readAll();
-
-    /* A quote that never closes would otherwise swallow every following row.
-       Once at least one line break was passed inside it, the file is read again
-       from that break: the broken row is reported and the rows after it import
-       normally instead of disappearing. */
-    while (state === 'quoted' && quoteBreak >= 0) {
-      errors.push({ line: rowLine, message: 'Unclosed quote — this row was skipped.' });
-      var resumeAt = quoteBreak;
-      var resumeLine = quoteBreakLine;
-      row = [];
-      field = '';
-      state = 'start';
-      rowBad = false;
-      quoteBreak = -1;
-      i = resumeAt;
-      line = resumeLine;
-      rowLine = resumeLine;
-      readAll();
+    if (inQuotes) {
+      errors.push({ line: quoteLine, message: 'Unclosed quote — the row starting on this line was skipped.' });
+    } else if (field !== '' || row.length) {
+      pushRow();
     }
 
-    if (state === 'quoted') {
-      errors.push({ line: rowLine, message: 'Unclosed quote — this row could not be read.' });
-      return { rows: rows, errors: errors };
-    }
-    if (state !== 'start' || field !== '' || row.length) { endRow(); }
     return { rows: rows, errors: errors };
   }
 
@@ -492,13 +445,18 @@
         });
         continue;
       }
-      var name = String(cells[idx.name] == null ? '' : cells[idx.name]).trim();
+      /* A quoted field may legally span lines; a name or a table label cannot,
+         so fold the break into a space instead of printing a split line. */
+      function oneLine(value) {
+        return String(value == null ? '' : value).replace(/\s*\n\s*/g, ' ').replace(/\s+/g, ' ').trim();
+      }
+      var name = oneLine(cells[idx.name]);
       if (!name) {
         report.errors.push({ line: row.line, message: 'Name is required.' });
         continue;
       }
-      var rawTable = idx.table >= 0 ? String(cells[idx.table] == null ? '' : cells[idx.table]).trim() : '';
-      var rawTags = idx.tags >= 0 ? String(cells[idx.tags] == null ? '' : cells[idx.tags]) : '';
+      var rawTable = idx.table >= 0 ? oneLine(cells[idx.table]) : '';
+      var rawTags = idx.tags >= 0 ? oneLine(cells[idx.tags]) : '';
       var tableId = findTableByLabel(rawTable);
       if (rawTable && !tableId) {
         report.misses.push({ line: row.line, table: rawTable });
@@ -507,7 +465,7 @@
         id: uid('g'),
         name: txt(name, 120),
         tableId: tableId,
-        tags: rawTags.split(';').map(function (t) { return t.trim(); }).filter(Boolean).slice(0, 12),
+        tags: rawTags.split(';').map(function (t) { return t.trim().slice(0, 120); }).filter(Boolean).slice(0, 12),
         note: ''
       });
     }
@@ -538,7 +496,7 @@
     minimal: {
       id: 'minimal', label: 'Minimal',
       family: 'times',
-      cssFont: '"Times New Roman", Times, serif',
+      cssFont: '"EB Garamond", Georgia, "Times New Roman", serif',
       bg: '#ffffff', fg: '#1c1b17', muted: '#807a6c', rule: '#ddd8c9', accent: '#1c1b17',
       margin: { l: 34, r: 34, t: 40, b: 30 },
       columns: 2, gap: 26, align: 'center', footerSize: 4,
@@ -549,7 +507,7 @@
     botanical: {
       id: 'botanical', label: 'Botanical',
       family: 'times',
-      cssFont: '"Times New Roman", Times, serif',
+      cssFont: '"EB Garamond", Georgia, "Times New Roman", serif',
       bg: '#f7f1e2', fg: '#2c3a2b', muted: '#6c7659', rule: '#cdc5ad', accent: '#5f7a45',
       margin: { l: 28, r: 28, t: 32, b: 26 },
       columns: 2, gap: 18, align: 'left', footerSize: 4,
@@ -560,7 +518,7 @@
     midnight: {
       id: 'midnight', label: 'Midnight',
       family: 'helv',
-      cssFont: 'Arial, Helvetica, sans-serif',
+      cssFont: 'Inter, "Helvetica Neue", Arial, sans-serif',
       bg: '#101319', fg: '#f4ecd9', muted: '#a49b8a', rule: '#3a4152', accent: '#c9a95d',
       panelFill: '#191e29', panelStroke: '#8f7738',
       margin: { l: 20, r: 20, t: 26, b: 22 },
@@ -579,25 +537,71 @@
 
   var metricCache = null;
 
+  /* Base64 -> bytes, for the fonts embedded in assets/vendor/fonts.js. */
+  function bytesFromBase64(b64) {
+    var bin = atob(b64);
+    var out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) { out[i] = bin.charCodeAt(i); }
+    return out;
+  }
+
+  /* Code points the embedded subset can actually draw. */
+  var coverageCache = Object.create(null);
+  function coverageOf(b64) {
+    if (coverageCache[b64]) { return coverageCache[b64]; }
+    var set = null;
+    try {
+      var font = window.fontkit.create(bytesFromBase64(b64));
+      set = Object.create(null);
+      (font.characterSet || []).forEach(function (cp) { set[cp] = true; });
+    } catch (err) {
+      set = null;
+    }
+    coverageCache[b64] = set;
+    return set;
+  }
+
   function getMetricFonts() {
     if (!window.PDFLib) { return Promise.reject(new Error('The PDF library did not load.')); }
     if (!metricCache) {
       var lib = window.PDFLib;
       var SF = lib.StandardFonts;
+      var packs = window.SEAT_FONTS;
+      var canEmbed = !!(window.fontkit && packs && packs.garamond400 && packs.inter400);
       metricCache = lib.PDFDocument.create().then(function (doc) {
+        if (!canEmbed) { return null; }
+        doc.registerFontkit(window.fontkit);
         return Promise.all([
-          doc.embedFont(SF.TimesRoman),
-          doc.embedFont(SF.TimesRomanBold),
-          doc.embedFont(SF.TimesRomanItalic),
-          doc.embedFont(SF.Helvetica),
-          doc.embedFont(SF.HelveticaBold),
-          doc.embedFont(SF.HelveticaOblique)
+          doc.embedFont(bytesFromBase64(packs.garamond400), { subset: true }),
+          doc.embedFont(bytesFromBase64(packs.garamond600), { subset: true }),
+          doc.embedFont(bytesFromBase64(packs.garamond400i), { subset: true }),
+          doc.embedFont(bytesFromBase64(packs.inter400), { subset: true }),
+          doc.embedFont(bytesFromBase64(packs.inter600), { subset: true }),
+          doc.embedFont(bytesFromBase64(packs.inter400i || packs.inter400), { subset: true })
         ]);
       }).then(function (f) {
-        return {
-          times: { body: f[0], bold: f[1], italic: f[2] },
-          helv: { body: f[3], bold: f[4], italic: f[5] }
-        };
+        if (f) {
+          return {
+            times: { body: f[0], bold: f[1], italic: f[2] },
+            helv: { body: f[3], bold: f[4], italic: f[5] }
+          };
+        }
+        /* Fallback: the page still has to produce a PDF if the font files are missing. */
+        return lib.PDFDocument.create().then(function (doc) {
+          return Promise.all([
+            doc.embedFont(SF.TimesRoman),
+            doc.embedFont(SF.TimesRomanBold),
+            doc.embedFont(SF.TimesRomanItalic),
+            doc.embedFont(SF.Helvetica),
+            doc.embedFont(SF.HelveticaBold),
+            doc.embedFont(SF.HelveticaOblique)
+          ]);
+        }).then(function (g) {
+          return {
+            times: { body: g[0], bold: g[1], italic: g[2] },
+            helv: { body: g[3], bold: g[4], italic: g[5] }
+          };
+        });
       });
       metricCache.catch(function () { metricCache = null; });
     }
@@ -626,14 +630,20 @@
       var key = kind + '|' + text;
       if (cache[key] !== undefined) { return cache[key]; }
       var font = fonts[kind] || fonts.body;
+      var cov = fonts.coverage && fonts.coverage[kind || 'body'];
       var out = '';
-      for (var i = 0; i < text.length; i++) {
-        var ch = text.charAt(i);
+      var chars = Array.from ? Array.from(text) : text.split('');
+      for (var i = 0; i < chars.length; i++) {
+        var ch = chars[i];
         var ok = true;
-        try {
-          font.widthOfTextAtSize(ch, 10);
-        } catch (err) {
-          ok = false;
+        if (cov) {
+          ok = !!cov[ch.codePointAt(0)];
+        } else {
+          try {
+            font.widthOfTextAtSize(ch, 10);
+          } catch (err) {
+            ok = false;
+          }
         }
         if (ok) {
           out += ch;
@@ -852,10 +862,15 @@
     var col = 0;
     var y = 0;
     var colHas = false;
-    var colW = (cfg.contentW - cfg.gap * (cfg.columns - 1)) / cfg.columns;
+    /* Never reserve more columns than there are blocks to fill them: two tables
+       on a three-column poster should use two centred columns, not one column
+       and two empty ones. */
+    var cols = Math.max(1, Math.min(cfg.columns, blocks.length));
+    var colW = (cfg.contentW - cfg.gap * (cols - 1)) / cols;
+    var xShift = (cfg.contentW - (cols * colW + (cols - 1) * cfg.gap)) / 2;
     var bottom = cfg.bottom;
 
-    function colX(index) { return cfg.margin.l + index * (colW + cfg.gap); }
+    function colX(index) { return cfg.margin.l + xShift + index * (colW + cfg.gap); }
 
     function newPage() {
       var index = pages.length;
@@ -875,7 +890,7 @@
     }
 
     function nextColumn() {
-      if (col + 1 < cfg.columns) {
+      if (col + 1 < cols) {
         col += 1;
         y = page.top;
         colHas = false;
@@ -888,7 +903,7 @@
        columns (linear partition). It keeps a poster from ending up with four
        tables in the first column and three empty columns beside it. */
     var breakBefore = {};
-    if (cfg.columns > 1) {
+    if (cols > 1) {
       var heights = [];
       var totalHeight = 0;
       blocks.forEach(function (block) {
@@ -899,18 +914,21 @@
         totalHeight += h;
       });
       var columnHeight = bottom - cfg.topFor(0);
-      if (blocks.length > cfg.columns && totalHeight <= columnHeight * cfg.columns) {
+      /* Two tables on a two-column poster used to stack in the left column and
+         leave the right side empty; balance as soon as there is more than one
+         block, not only when the blocks already outnumber the columns. */
+      if (blocks.length >= 2 && totalHeight <= columnHeight * cols) {
         var prefix = [0];
         heights.forEach(function (h, i) { prefix.push(prefix[i] + h); });
         var n = heights.length;
         var best = [];
         var from = [];
-        for (var c = 0; c <= cfg.columns; c++) {
+        for (var c = 0; c <= cols; c++) {
           best.push(new Array(n + 1).fill(Infinity));
           from.push(new Array(n + 1).fill(0));
         }
         best[0][0] = 0;
-        for (var cc = 1; cc <= cfg.columns; cc++) {
+        for (var cc = 1; cc <= cols; cc++) {
           for (var i = 1; i <= n; i++) {
             for (var j = cc - 1; j < i; j++) {
               var value = Math.max(best[cc - 1][j], prefix[i] - prefix[j]);
@@ -919,7 +937,7 @@
           }
         }
         var cursor = n;
-        for (var c2 = cfg.columns; c2 > 1; c2--) {
+        for (var c2 = cols; c2 > 1; c2--) {
           cursor = from[c2][cursor];
           if (cursor > 0) { breakBefore[cursor] = true; }
         }
@@ -1152,6 +1170,22 @@
     });
   }
 
+  /* A poster with two tables used to leave most of an A2 sheet empty. When the
+     blocks comfortably fit, scale the block typography up and centre the block
+     area vertically, so a small wedding still gets a composed poster. */
+  function scaledStyle(S, f) {
+    if (!(f > 1.001)) { return S; }
+    var out = JSON.parse(JSON.stringify(S));
+    out.block.labelSize = S.block.labelSize * f;
+    out.block.metaSize = S.block.metaSize * f;
+    out.block.nameSize = S.block.nameSize * f;
+    out.block.lineH = S.block.lineH * f;
+    out.block.gap = S.block.gap * (1 + (f - 1) * 0.8);
+    if (S.block.padX) { out.block.padX = S.block.padX * f; }
+    if (S.block.padY) { out.block.padY = S.block.padY * f; }
+    return out;
+  }
+
   function layoutPoster(model, styleId, mm) {
     var S = STYLES[styleId] || STYLES.minimal;
     var contentW = PAGE.w - S.margin.l - S.margin.r;
@@ -1164,35 +1198,57 @@
     var contH = Math.max(26, stackHeight(contStack) + 16);
     var bottom = PAGE.h - S.margin.b - 14;
 
-    var pages = flow(posterBlocks(model, S, mm, colW), {
-      S: S,
-      mm: mm,
-      margin: S.margin,
-      columns: S.columns,
-      gap: S.gap,
-      contentW: contentW,
-      bottom: bottom,
-      bg: S.bg,
-      topFor: function (index) { return index === 0 ? S.margin.t + headerH : S.margin.t + contH; },
-      onNewPage: function (page, index) {
-        if (index === 0) {
-          drawStack(page, headStack, S.margin.l, contentW, S.margin.t, S, mm);
-        } else {
-          drawStack(page, contStack, S.margin.l, contentW, S.margin.t + 2, S, mm);
-        }
-
-        if (S.id === 'midnight') {
-          page.shapes.push({
-            t: 'rect', x: S.margin.l - 7, y: S.margin.t - 9,
-            w: PAGE.w - S.margin.l - S.margin.r + 14,
-            h: PAGE.h - S.margin.t - S.margin.b + 9,
-            fill: null, stroke: tint(S, 'rule'), lineWidth: 0.25
-          });
-        }
-      }
+    var probe = posterBlocks(model, S, mm, colW);
+    var probeH = 0;
+    probe.forEach(function (block) {
+      var headH = stackHeight(block.header);
+      var pad = block.panel ? (block.padY || 0) * 2 : 0;
+      probeH += headH + block.lines.length * block.lineH + pad + (block.gapBefore || 0);
     });
+    var available = bottom - (S.margin.t + headerH);
+    var fit = available / Math.max(1, probeH / Math.max(1, S.columns));
+    var scale = fit > 1.15 ? Math.min(1.45, fit * 0.86) : 1;
+    var S2 = scaledStyle(S, scale);
 
-    return { pages: pages, unsupported: mm.unsupported, style: S, kind: 'poster' };
+    var posterFlow = { S: S2, mm: mm, margin: S.margin, columns: S.columns, gap: S.gap, contentW: contentW, bottom: bottom, bg: S.bg };
+    var blocks2 = scale > 1.001 ? posterBlocks(model, S2, mm, (contentW - S.gap * (S.columns - 1)) / S.columns) : probe;
+    var usedH = 0;
+    if (scale > 1.001) {
+      blocks2.forEach(function (block) {
+        var headH = stackHeight(block.header);
+        var pad = block.panel ? (block.padY || 0) * 2 : 0;
+        usedH += headH + block.lines.length * block.lineH + pad + (block.gapBefore || 0);
+      });
+      usedH = usedH / Math.max(1, S.columns);
+    }
+    /* Centre the title and the blocks as one group, so a two-table poster reads
+       as a composed title page instead of a header stranded at the top. */
+    /* Centre the group, but never sink the title below the upper third. */
+    var offset = scale > 1.001 ? Math.min(Math.max(0, (available - usedH) * 0.5), available * 0.16) : 0;
+
+    posterFlow.topFor = function (index) {
+      return index === 0 ? S.margin.t + offset + headerH : S.margin.t + contH;
+    };
+    posterFlow.onNewPage = function (page, index) {
+      if (index === 0) {
+        drawStack(page, headStack, S.margin.l, contentW, S.margin.t + offset, S, mm);
+      } else {
+        drawStack(page, contStack, S.margin.l, contentW, S.margin.t + 2, S, mm);
+      }
+
+      if (S.id === 'midnight') {
+        page.shapes.push({
+          t: 'rect', x: S.margin.l - 7, y: S.margin.t - 9,
+          w: PAGE.w - S.margin.l - S.margin.r + 14,
+          h: PAGE.h - S.margin.t - S.margin.b + 9,
+          fill: null, stroke: tint(S, 'rule'), lineWidth: 0.25
+        });
+      }
+    };
+
+    var pages = flow(blocks2, posterFlow);
+
+    return { pages: pages, unsupported: mm.unsupported, style: S, kind: 'poster', scale: scale };
   }
 
   function qrSheet(model, styleId, mm, shareUrl) {
@@ -1220,7 +1276,11 @@
     model.guests.slice().sort(function (a, b) {
       return a.name.localeCompare(b.name, 'en', { sensitivity: 'base' });
     }).forEach(function (g) {
-      var letter = (g.name.trim().charAt(0) || '#').toUpperCase();
+      /* Åsa and Élodie belong under A and E, not under #: strip diacritics
+         before taking the initial. */
+      var firstChar = (g.name.trim().charAt(0) || '#');
+      firstChar = firstChar.normalize ? firstChar.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : firstChar;
+      var letter = firstChar.toUpperCase();
       if (!/[A-Z]/.test(letter)) { letter = '#'; }
       if (!byLetter[letter]) { byLetter[letter] = { letter: letter, guests: [] }; groups.push(byLetter[letter]); }
       byLetter[letter].guests.push(g);
@@ -1651,7 +1711,9 @@
           y: (PAGE.h - shape.cy) * MM2PT,
           xScale: shape.rx * MM2PT,
           yScale: shape.ry * MM2PT,
-          rotate: lib.degrees(shape.rotate || 0),
+          /* Canvas rotates clockwise with y down; PDF rotates counter-clockwise
+             with y up, so the same leaf needs the opposite angle. */
+          rotate: lib.degrees(-(shape.rotate || 0)),
           color: lib.rgb(ec.r, ec.g, ec.b),
           opacity: shape.opacity == null ? 1 : shape.opacity
         });
@@ -1687,21 +1749,48 @@
     });
   }
 
-  async function buildPdf(model, styleId, kind, shareUrl) {
+  async function embedPdfFonts(doc, styleId) {
     var lib = window.PDFLib;
-    if (!lib) { throw new Error('The PDF library did not load, so no download can be built.'); }
-    var S = STYLES[styleId] || STYLES.minimal;
     var SF = lib.StandardFonts;
+    var S = STYLES[styleId] || STYLES.minimal;
+    var packs = window.SEAT_FONTS;
+    if (window.fontkit && packs && packs.garamond400 && packs.inter400) {
+      doc.registerFontkit(window.fontkit);
+      var pack = S.family === 'helv'
+        ? { body: packs.inter400, bold: packs.inter600, italic: packs.inter400i || packs.inter400 }
+        : { body: packs.garamond400, bold: packs.garamond600, italic: packs.garamond400i };
+      var set = {
+        body: await doc.embedFont(bytesFromBase64(pack.body), { subset: true }),
+        bold: await doc.embedFont(bytesFromBase64(pack.bold), { subset: true }),
+        italic: await doc.embedFont(bytesFromBase64(pack.italic), { subset: true })
+      };
+      /* Measuring a character does not prove the font can draw it, so keep the
+         real glyph coverage for the "unsupported characters" warning. */
+      set.coverage = {
+        body: coverageOf(pack.body),
+        bold: coverageOf(pack.bold),
+        italic: coverageOf(pack.italic)
+      };
+      return set;
+    }
+    /* Fallback to the standard PDF fonts if the embedded ones are unavailable. */
     var family = S.family === 'helv'
       ? [SF.Helvetica, SF.HelveticaBold, SF.HelveticaOblique]
       : [SF.TimesRoman, SF.TimesRomanBold, SF.TimesRomanItalic];
-
-    var doc = await lib.PDFDocument.create();
-    var fonts = {
+    return {
       body: await doc.embedFont(family[0]),
       bold: await doc.embedFont(family[1]),
       italic: await doc.embedFont(family[2])
     };
+  }
+
+  async function buildPdf(model, styleId, kind, shareUrl) {
+    var lib = window.PDFLib;
+    if (!lib) { throw new Error('The PDF library did not load, so no download can be built.'); }
+    var S = STYLES[styleId] || STYLES.minimal;
+
+    var doc = await lib.PDFDocument.create();
+    var fonts = await embedPdfFonts(doc, styleId);
 
     var mm = makeMetrics(fonts);
     var layout = kind === 'sheet' ? qrSheet(model, styleId, mm, shareUrl) : layoutPoster(model, styleId, mm);
@@ -2536,6 +2625,12 @@
       try {
         var url = new URL(saved);
         if (url.protocol !== 'http:' && url.protocol !== 'https:') { throw new Error('scheme'); }
+        /* The QR code must land on the seat finder, not on whatever page happens
+           to be at that address. */
+        if (!/\/share\.html$/i.test(url.pathname)) {
+          error = 'The address must point at the share.html page on your own site.';
+          return { url: '', source: 'saved', error: error, hosted: hosted };
+        }
         base = url.href.split('#')[0];
         source = 'saved';
       } catch (err) {
@@ -2620,6 +2715,24 @@
         'hosts for a page that hosts the list itself.';
     }
     return (err && err.message) ? err.message : 'Something went wrong while building the file.';
+  }
+
+  /* Canvas draws with the CSS faces; until they are loaded the browser silently
+     substitutes a fallback, so the PNG would not match the PDF. */
+  var fontsReady = null;
+  function ensureFontsReady() {
+    if (!document.fonts || !document.fonts.load) { return Promise.resolve(); }
+    if (!fontsReady) {
+      fontsReady = Promise.all([
+        document.fonts.load('400 40px "EB Garamond"'),
+        document.fonts.load('600 40px "EB Garamond"'),
+        document.fonts.load('italic 400 40px "EB Garamond"'),
+        document.fonts.load('400 40px Inter'),
+        document.fonts.load('600 40px Inter'),
+        document.fonts.load('italic 400 40px Inter')
+      ]).then(function () { return document.fonts.ready; }).catch(function () { });
+    }
+    return fontsReady;
   }
 
   function appendPreviewPages(container, layout, label) {
@@ -2770,6 +2883,7 @@
       var button = this;
       if (blockIfLocked()) { return; }
       withBusy(button, async function () {
+        await ensureFontsReady();
         var fonts = await fontsFor(state.settings.style);
         var mm = makeMetrics(fonts);
         var layout = layoutPoster(state, state.settings.style, mm);
@@ -2778,9 +2892,13 @@
           var filename = layout.pages.length > 1
             ? 'seatstory-poster-' + (i + 1) + '.png'
             : 'seatstory-poster.png';
-          await new Promise(function (resolve) {
+          await new Promise(function (resolve, reject) {
             canvas.toBlob(function (blob) {
-              if (blob) { downloadBlob(blob, filename); }
+              if (!blob) {
+                reject(new Error('Page ' + (i + 1) + ' could not be turned into a PNG. Try the PDF instead.'));
+                return;
+              }
+              downloadBlob(blob, filename);
               resolve();
             }, 'image/png');
           });

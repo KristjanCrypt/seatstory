@@ -1,263 +1,220 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SeatStory — wedding seating chart</title>
-<meta name="description" content="Plan your wedding seating chart, then export a printable A2 poster and a find-your-seat QR sheet. Works offline; your data stays in this browser.">
-<link rel="stylesheet" href="assets/styles.css">
+<title>SeatStory — wedding seating charts that print beautifully</title>
+<meta name="description" content="Build a wedding seating chart in your browser, print it at A2, and give guests a QR code that finds their table. $29 once, no account, no upload.">
+<link rel="stylesheet" href="assets/vendor/fonts.css">
 <link rel="icon" href="data:,">
+<style>
+  :root {
+    --cream: #f7f3ec;
+    --paper: #fffefb;
+    --ink: #1c1b17;
+    --muted: #7c756a;
+    --rule: #ded6c6;
+    --accent: #2c3a2b;
+    --gold: #c9a95d;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: Inter, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+  h1, h2, h3, .serif { font-family: "EB Garamond", Georgia, serif; font-weight: 600; letter-spacing: -0.01em; }
+  h1 { font-size: clamp(2.4rem, 6vw, 4.2rem); line-height: 1.03; margin: 0 0 18px; }
+  h2 { font-size: clamp(1.7rem, 3.4vw, 2.5rem); margin: 0 0 14px; }
+  h3 { font-size: 1.25rem; margin: 0 0 6px; }
+  p { margin: 0 0 14px; }
+  a { color: inherit; }
+  .kicker {
+    font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 22px;
+  }
+  header.top {
+    border-bottom: 1px solid var(--rule);
+    padding: 18px 0;
+    position: sticky; top: 0; background: rgba(255, 254, 251, 0.94); z-index: 5;
+  }
+  header.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .brand { font-family: "EB Garamond", Georgia, serif; font-size: 1.15rem; letter-spacing: 0.16em; text-transform: uppercase; text-decoration: none; }
+  .btn {
+    display: inline-block; padding: 15px 26px; min-height: 48px;
+    background: var(--ink); color: var(--paper);
+    text-decoration: none; font-size: 0.95rem; border-radius: 2px;
+    border: 1px solid var(--ink);
+  }
+  .btn:hover { background: #000; }
+  .btn.ghost { background: transparent; color: var(--ink); }
+  .btn.ghost:hover { background: #f1ece2; }
+  .hero { padding: 72px 0 40px; }
+  .hero .lead { font-size: 1.14rem; color: var(--muted); max-width: 34em; }
+  .cta-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 26px; }
+  .fine { font-size: 0.86rem; color: var(--muted); margin-top: 12px; }
+  .shot { margin: 34px 0 0; border: 1px solid var(--rule); background: var(--cream); }
+  .shot img { display: block; width: 100%; height: auto; }
+  section { padding: 64px 0; border-top: 1px solid var(--rule); }
+  .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 28px; }
+  .card { background: var(--cream); border: 1px solid var(--rule); padding: 0; }
+  .card img { display: block; width: 100%; height: auto; }
+  .card .body { padding: 16px 18px 20px; }
+  .muted { color: var(--muted); }
+  ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 0; display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  ol.steps li { counter-increment: s; }
+  ol.steps li::before {
+    content: counter(s); display: block; font-family: "EB Garamond", Georgia, serif;
+    font-size: 1.6rem; color: var(--gold); margin-bottom: 4px;
+  }
+  .price { display: flex; align-items: baseline; gap: 12px; margin: 6px 0 4px; }
+  .price .amount { font-family: "EB Garamond", Georgia, serif; font-size: 3rem; line-height: 1; }
+  details { border-bottom: 1px solid var(--rule); padding: 14px 0; }
+  summary { cursor: pointer; font-weight: 600; font-size: 1rem; }
+  details p { margin: 10px 0 0; color: var(--muted); }
+  footer { padding: 40px 0 60px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 0.88rem; }
+  @media (max-width: 560px) {
+    body { font-size: 16px; }
+    .hero { padding: 44px 0 28px; }
+    section { padding: 44px 0; }
+  }
+</style>
 </head>
-<body data-page="app">
-<header class="app-bar">
-  <div class="app-bar__inner">
-    <div class="app-bar__row">
-      <span class="brand"><span class="brand__dot" aria-hidden="true"></span>SeatStory</span>
-      <button type="button" class="btn btn--quiet btn--small" id="btn-start-over">Start over</button>
-    </div>
-    <nav class="tabs" aria-label="Sections">
-      <button type="button" class="tab is-active" data-view="guests" aria-current="page">Guests</button>
-      <button type="button" class="tab" data-view="tables">Tables</button>
-      <button type="button" class="tab" data-view="plan">Plan</button>
-      <button type="button" class="tab" data-view="export">Export</button>
-    </nav>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html">SeatStory</a>
+    <a class="btn ghost" href="app.html">Open the chart builder</a>
   </div>
 </header>
 
-<main class="wrap" id="main">
-
-  <!-- ------------------------------------------------------------ Guests -->
-  <section class="view" id="view-guests" data-view="guests">
-    <div class="view__head">
-      <h1>Guests</h1>
-      <p class="view__sub" id="guests-sub">No guests yet.</p>
+<main>
+  <div class="wrap hero">
+    <p class="kicker">Wedding seating charts</p>
+    <h1>Your seating plan,<br>printed beautifully.</h1>
+    <p class="lead">Type in your guests, drop them at tables, pick one of three print-ready styles. You get an A2 poster that a print shop can run without a single font missing, plus a QR sheet that tells every guest where to sit.</p>
+    <div class="cta-row">
+      <a class="btn" href="app.html">Build your chart — $29</a>
+      <a class="btn ghost" href="#how">See how it works</a>
     </div>
+    <p class="fine">One payment. No account, no subscription, nothing uploaded — your guest list never leaves the browser.</p>
+    <div class="shot"><img src="assets/samples/etsy-1-hero.jpg" alt="Three SeatStory seating chart styles: Minimal, Botanical and Midnight" width="2000" height="2000"></div>
+  </div>
 
-    <form class="card form" id="form-guest" autocomplete="off">
-      <div class="form__row">
-        <label class="field field--grow">
-          <span class="field__label">Name</span>
-          <input class="input" type="text" id="guest-name" placeholder="Anna Smith" maxlength="120" required>
-        </label>
-        <label class="field">
-          <span class="field__label">Table</span>
-          <select class="input" id="guest-table"></select>
-        </label>
-      </div>
-      <div class="form__row">
-        <label class="field field--grow">
-          <span class="field__label">Tags <span class="field__hint">separate with ;</span></span>
-          <input class="input" type="text" id="guest-tags" placeholder="vegan; no-alcohol" maxlength="400">
-        </label>
-        <button class="btn btn--primary" type="submit">Add guest</button>
-      </div>
-    </form>
-
-    <div class="tools">
-      <label class="field field--grow">
-        <span class="field__label sr-only">Search guests</span>
-        <input class="input" type="search" id="guest-search" placeholder="Search guests">
-      </label>
-    </div>
-
-    <details class="card details" id="csv-box">
-      <summary>Import / export CSV</summary>
-      <div class="details__body">
-        <p class="muted small">Columns are <code>name,table,tags</code>. Separate tags with semicolons. A missing or unknown table leaves the guest unseated.</p>
-        <label class="field">
-          <span class="field__label">Paste CSV</span>
-          <textarea class="input input--area" id="csv-text" rows="4" placeholder="name,table,tags&#10;Anna Smith,Table 1,vegan;no-alcohol"></textarea>
-        </label>
-        <div class="btn-row">
-          <button class="btn btn--primary" type="button" id="btn-import">Import CSV</button>
-          <button class="btn" type="button" id="btn-export-csv">Export CSV</button>
-          <label class="btn btn--file">
-            <span>Choose file</span>
-            <input type="file" id="csv-file" accept=".csv,text/csv">
-          </label>
+  <section id="styles">
+    <div class="wrap">
+      <p class="kicker">Three styles</p>
+      <h2>Pick the room you want to walk into</h2>
+      <p class="muted" style="max-width:38em">Every style is a real vector PDF, not a screenshot. Change the style after you have entered the guests — the seating stays put.</p>
+      <div class="grid3" style="margin-top:26px">
+        <div class="card">
+          <img src="assets/samples/etsy-2-minimal.jpg" alt="Minimal style seating chart" width="2000" height="2000">
+          <div class="body"><h3>Minimal</h3><p class="muted">White, fine serif, generous air. Reads from across a room.</p></div>
         </div>
-        <div class="report" id="import-report" hidden></div>
-      </div>
-    </details>
-
-    <ul class="guest-list" id="guest-list"></ul>
-    <p class="empty" id="guests-empty" hidden>No guests yet. Add your first guest above, or import a CSV.</p>
-  </section>
-
-  <!-- ------------------------------------------------------------ Tables -->
-  <section class="view" id="view-tables" data-view="tables" hidden>
-    <div class="view__head">
-      <h1>Tables</h1>
-      <p class="view__sub" id="tables-sub">No tables yet.</p>
-    </div>
-
-    <form class="card form" id="form-table" autocomplete="off">
-      <div class="form__row">
-        <label class="field field--grow">
-          <span class="field__label">Table name</span>
-          <input class="input" type="text" id="table-label" placeholder="Table 1" maxlength="60" required>
-        </label>
-        <label class="field field--narrow">
-          <span class="field__label">Seats</span>
-          <input class="input" type="number" id="table-capacity" min="1" step="1" value="8" inputmode="numeric" required>
-        </label>
-      </div>
-      <div class="form__row">
-        <label class="field field--grow">
-          <span class="field__label">Shape</span>
-          <select class="input" id="table-shape">
-            <option value="round">Round</option>
-            <option value="long">Long</option>
-          </select>
-        </label>
-        <button class="btn btn--primary" type="submit">Add table</button>
-      </div>
-    </form>
-
-    <ul class="table-list" id="table-list"></ul>
-    <p class="empty" id="tables-empty" hidden>No tables yet. Add a table to start seating guests.</p>
-  </section>
-
-  <!-- -------------------------------------------------------------- Plan -->
-  <section class="view" id="view-plan" data-view="plan" hidden>
-    <div class="view__head">
-      <h1>Plan</h1>
-      <p class="view__sub" id="plan-sub">Add guests and tables first.</p>
-    </div>
-
-    <div class="stats" id="plan-stats">
-      <div class="stat"><span class="stat__value" id="stat-seated">0</span><span class="stat__label">seated</span></div>
-      <div class="stat"><span class="stat__value" id="stat-unseated">0</span><span class="stat__label">unseated</span></div>
-      <div class="stat"><span class="stat__value" id="stat-seats">0</span><span class="stat__label">seats</span></div>
-      <div class="stat"><span class="stat__value" id="stat-free">0</span><span class="stat__label" id="stat-free-label">free seats</span></div>
-    </div>
-
-    <div class="seat-bar" id="seat-bar" hidden>
-      <span id="seat-bar-text">Guest selected</span>
-      <button class="btn btn--small btn--quiet" type="button" id="btn-cancel-select">Cancel</button>
-    </div>
-
-    <label class="field">
-      <span class="field__label sr-only">Search the plan</span>
-      <input class="input" type="search" id="plan-search" placeholder="Search guests on the plan">
-    </label>
-
-    <section class="card unseated" id="unseated-panel">
-      <div class="unseated__head">
-        <h2>Unseated <span class="pill" id="unseated-count">0</span></h2>
-        <p class="muted small">Tap a guest, then tap a table. With a mouse you can also drag a guest onto a table.</p>
-      </div>
-      <div class="chip-list" id="unseated-list"></div>
-      <p class="empty small" id="unseated-empty">Everyone has a seat.</p>
-    </section>
-
-    <div class="plan-tables" id="plan-tables"></div>
-  </section>
-
-  <!-- ------------------------------------------------------------ Export -->
-  <section class="view" id="view-export" data-view="export" hidden>
-    <div class="view__head">
-      <h1>Export</h1>
-      <p class="view__sub">A2 poster (PDF and PNG) plus a printable find-your-seat sheet.</p>
-    </div>
-
-    <div class="card lock" id="lock-card">
-      <div class="lock__copy">
-        <p class="lock__title" id="lock-title">Preview mode</p>
-        <p class="muted small" id="lock-text">Downloads are locked and the preview carries a watermark. Unlock once and this device keeps the purchase.</p>
-      </div>
-      <div class="lock__actions">
-        <button class="btn btn--primary" type="button" id="btn-unlock">Unlock for <span id="price-label">$29 one-time</span></button>
-      </div>
-      <div class="lock__restore" id="lock-restore">
-        <label class="field">
-          <span class="field__label">Restore purchase</span>
-          <div class="inline">
-            <input class="input" type="text" id="unlock-code" placeholder="Unlock code" autocomplete="off">
-            <button class="btn" type="button" id="btn-restore">Restore</button>
-          </div>
-        </label>
-        <p class="error small" id="restore-error" hidden></p>
-      </div>
-    </div>
-
-    <form class="card form" id="form-export" autocomplete="off">
-      <div class="form__row">
-        <label class="field field--grow">
-          <span class="field__label">Title</span>
-          <input class="input" type="text" id="ex-title" placeholder="Our Wedding" maxlength="80">
-        </label>
-        <label class="field field--grow">
-          <span class="field__label">Names</span>
-          <input class="input" type="text" id="ex-names" placeholder="Anna &amp; Mark" maxlength="80">
-        </label>
-      </div>
-      <div class="form__row">
-        <label class="field field--grow">
-          <span class="field__label">Date</span>
-          <input class="input" type="text" id="ex-date" placeholder="12 September 2026" maxlength="80">
-        </label>
-        <label class="field field--grow">
-          <span class="field__label">Venue</span>
-          <input class="input" type="text" id="ex-venue" placeholder="The Old Barn, Kent" maxlength="80">
-        </label>
-      </div>
-
-      <div class="field">
-        <span class="field__label">Style</span>
-        <div class="styles" id="style-picker" role="radiogroup" aria-label="Poster style">
-          <button type="button" class="style-card is-active" data-style="minimal" role="radio" aria-checked="true">
-            <span class="swatch swatch--minimal" aria-hidden="true"></span>
-            <span class="style-card__name">Minimal</span>
-            <span class="style-card__hint">White · fine serif · airy</span>
-          </button>
-          <button type="button" class="style-card" data-style="botanical" role="radio" aria-checked="false">
-            <span class="swatch swatch--botanical" aria-hidden="true"></span>
-            <span class="style-card__name">Botanical</span>
-            <span class="style-card__hint">Beige · leaves · two columns</span>
-          </button>
-          <button type="button" class="style-card" data-style="midnight" role="radio" aria-checked="false">
-            <span class="swatch swatch--midnight" aria-hidden="true"></span>
-            <span class="style-card__name">Midnight</span>
-            <span class="style-card__hint">Dark · gold · panelled</span>
-          </button>
+        <div class="card">
+          <img src="assets/samples/etsy-3-botanical.jpg" alt="Botanical style seating chart" width="2000" height="2000">
+          <div class="body"><h3>Botanical</h3><p class="muted">Warm paper, soft leaves, two columns for long lists.</p></div>
+        </div>
+        <div class="card">
+          <img src="assets/samples/etsy-4-midnight.jpg" alt="Midnight style seating chart" width="2000" height="2000">
+          <div class="body"><h3>Midnight</h3><p class="muted">Deep ink with gold rules — for a candlelit dinner.</p></div>
         </div>
       </div>
-
-      <label class="field" id="share-base-field">
-        <span class="field__label">Hosted share page <span class="field__hint" id="share-base-hint">needed for the QR code</span></span>
-        <input class="input" type="text" id="ex-share-base" placeholder="your-site.example/share.html" maxlength="500" spellcheck="false">
-      </label>
-    </form>
-
-    <h2 class="section-title">Preview</h2>
-    <div class="preview" id="preview" aria-live="polite"></div>
-    <p class="error" id="export-error" hidden></p>
-
-    <div class="export-actions">
-      <button class="btn btn--primary" type="button" id="btn-pdf">Poster PDF (A2)</button>
-      <button class="btn" type="button" id="btn-png">Poster PNG (2×)</button>
-      <button class="btn" type="button" id="btn-qr-pdf">Find-your-seat PDF</button>
     </div>
-    <p class="muted small" id="export-note">Nothing leaves this device. Downloads are generated in your browser.</p>
   </section>
 
+  <section id="how">
+    <div class="wrap">
+      <p class="kicker">How it works</p>
+      <h2>Three steps, twenty minutes</h2>
+      <ol class="steps">
+        <li>
+          <h3>Add your guests</h3>
+          <p class="muted">Type them in, or import a CSV with <code>name,table,tags</code>. The bad rows come back with a line number instead of silently disappearing.</p>
+        </li>
+        <li>
+          <h3>Seat them</h3>
+          <p class="muted">Tap a guest, tap a table. Seat counts and empty chairs update as you go, so you see the room filling up.</p>
+        </li>
+        <li>
+          <h3>Print and share</h3>
+          <p class="muted">Download the A2 PDF for the print shop and the QR sheet for the reception door. Guests scan, type their name, see their table.</p>
+        </li>
+      </ol>
+      <div class="shot" style="margin-top:34px"><img src="assets/samples/etsy-5-qr.jpg" alt="Find-your-seat QR sheet" width="2000" height="2000"></div>
+    </div>
+  </section>
+
+  <section id="what">
+    <div class="wrap">
+      <p class="kicker">What you get</p>
+      <h2>Everything a print shop needs</h2>
+      <div class="grid3">
+        <div>
+          <h3>A2 vector PDF</h3>
+          <p class="muted">420 × 594 mm, real text, fonts embedded. No pixel posters, no missing glyphs, no “we had to substitute the font”.</p>
+        </div>
+        <div>
+          <h3>Find-your-seat sheet</h3>
+          <p class="muted">A QR code that opens a search page for your own guest list. Works on any phone camera, no app, no login.</p>
+        </div>
+        <div>
+          <h3>Your data stays yours</h3>
+          <p class="muted">Everything is stored in your browser. No account, no analytics, no uploads. The page makes no network requests after it loads.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="price">
+    <div class="wrap">
+      <p class="kicker">Price</p>
+      <h2>$29, once</h2>
+      <div class="price"><span class="amount">$29</span><span class="muted">one-time · unlimited edits · no subscription</span></div>
+      <p class="muted" style="max-width:36em">You can build and preview the whole chart for free. You pay when you want the files without the watermark.</p>
+      <div class="cta-row"><a class="btn" href="app.html">Start your chart</a></div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <p class="kicker">Questions</p>
+      <h2>Before you buy</h2>
+      <details>
+        <summary>Do I need an account?</summary>
+        <p>No. There is nothing to sign up for and nothing to log into. The chart lives in your browser and the purchase unlocks downloads on that device.</p>
+      </details>
+      <details>
+        <summary>Where do my guests’ names go?</summary>
+        <p>Nowhere. The app runs entirely in your browser and does not send your list to a server. You can even open the file with no internet connection.</p>
+      </details>
+      <details>
+        <summary>What can my print shop do with the file?</summary>
+        <p>The PDF is A2 portrait with the fonts embedded, so it prints correctly anywhere. Ask for 200 gsm matte or a foam board if it will stand on an easel.</p>
+      </details>
+      <details>
+        <summary>Can I edit it after I pay?</summary>
+        <p>Yes. The seating is yours to change as RSVPs come in, and you can re-download the files as often as you need.</p>
+      </details>
+      <details>
+        <summary>How does the QR code work?</summary>
+        <p>The sheet contains a link to your guest search page. A guest scans it, types their name and sees their table — or “not seated yet” if they are still on your list.</p>
+      </details>
+    </div>
+  </section>
 </main>
 
-<div class="modal" id="modal" hidden>
-  <div class="modal__backdrop" data-close="1"></div>
-  <div class="modal__box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <h2 class="modal__title" id="modal-title">Confirm</h2>
-    <p class="modal__text" id="modal-text"></p>
-    <div class="modal__actions" id="modal-actions"></div>
+<footer>
+  <div class="wrap">
+    <p>SeatStory — a small tool by BeVisual OÜ, Tallinn. <a href="app.html">Open the builder</a>.</p>
   </div>
-</div>
+</footer>
 
-<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-
-<script src="assets/config.js"></script>
-<script src="assets/vendor/pdf-lib.min.js"></script>
-<script src="assets/vendor/qrcode.js"></script>
-<script src="assets/app.js"></script>
 </body>
 </html>

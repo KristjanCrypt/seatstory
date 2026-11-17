@@ -13,7 +13,7 @@ konto ja backendita.
   ei API-sid. Kõik vajalikud teegid (PDF, QR) on `assets/vendor/` all kohapeal.
   Font: süsteemne font-stack või kohalik woff2.
 - Staatiline hostimine (GitHub Pages / Netlify). Avaneb ka `file://` pealt.
-- Üks leht `index.html` + `assets/` (CSS/JS eraldi failid on OK, raamistikke ei ole).
+- Üks leht `app.html` + `assets/` (CSS/JS eraldi failid on OK, raamistikke ei ole). `index.html` on turundusleht.
 
 ## 1. Andmemudel (localStorage)
 
@@ -76,7 +76,7 @@ horisontaalset kerimist 390 px laiusel ekraanil**. Puutealad ≥44 px.
 
 ## 6. Vastuvõtukriteeriumid (mida reviewer kontrollib)
 
-1. `index.html` avaneb `file://` pealt ja töötab ilma võrguta (pärast laadimist 0 päringut).
+1. `app.html` avaneb `file://` pealt ja töötab ilma võrguta (pärast laadimist 0 päringut).
 2. 40 külalist + 6 lauda mahuga 8: kõik paigutatavad, "unseated" loend õige,
     üle mahutavuse laud märgitakse punaselt.
 3. CSV import 20 reaga loob 20 külalist õigete tagidega; vigane rida ei karga

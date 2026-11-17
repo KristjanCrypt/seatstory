@@ -2,7 +2,7 @@
 Luua SeatStory: ingliskeelne mobiilisõbralik staatiline pulma istumisplaani äpp, mis salvestab andmed brauseris ning ekspordib plakati ja otsitava QR-lehe. Olemas on TASK.md, kaks nõutud teeki ja töövoofailid; tootekoodi veel pole.
 
 ## Nõuded
-1. `index.html` ja `share.html` töötavad `file://` ning staatilises hostis; rakendus ei tee pärast laadimist võrgupäringuid.
+1. `app.html` ja `share.html` töötavad `file://` ning staatilises hostis; rakendus ei tee pärast laadimist võrgupäringuid. `index.html` on turundusleht, mis viib `app.html`-i.
 2. `seatstory_v1` säilitab TASK.md külaliste, laudade ja seadistuste mudeli ning ostuõiguse; iga muudatus salvestub kohe. Kinnitusega „Start over” kustutab istumisplaani, säilitades ostuõiguse.
 3. Guests võimaldab lisada/kustutada külalisi, muuta nime, tage ja märkust ning otsida; Tables võimaldab lisada/eemaldada laudu ning muuta nime, positiivset täisarvulist mahutavust ja kuju.
 4. CSV import/eksport kasutab päist `name,table,tags`, toetab jutumärke, komasid ja semikooloniga tage; vigased read saavad reanumbriga vea, kehtivad imporditakse. Tundmatu või tühi laud jätab külalise paigutamata.
@@ -15,11 +15,19 @@ Luua SeatStory: ingliskeelne mobiilisõbralik staatiline pulma istumisplaani äp
 11. QR jagamisbaas tuletatakse hostitud lehe aadressist; `file://` korral küsitakse hostitud `share.html` aadressi. Liiga suur QR-andmestik ja vigane fragment annavad arusaadava vea.
 
 ## Failid
-Luuakse `index.html`, `share.html`, `assets/styles.css`, `assets/config.js`, `assets/app.js`.
+Luuakse `index.html` (turundusleht), `app.html` (rakendus), `share.html` (külalise otsing), `assets/styles.css`, `assets/config.js`, `assets/app.js`, `assets/samples/*.jpg` (Etsy/landingu pildid).
 Ekspordi- ja jagamisloogika jäävad **`app.js`-i ühte faili**: ilma ehitustööriistata
 (plaan keelab need) on mitme skripti laadimisjärjekord katki minev risk, mis kaalub
 üles faili suuruse. `config.js` sisaldab `PAYMENT_URL`, `PRICE_LABEL` (`$29 one-time`)
 ja `UNLOCK_CODE`; olemasolevad vendor-teegid, TASK.md ja töövoofailid jäävad muutmata.
+
+**Fondid (otsus 16.11):** PDF ei kasuta enam standardfonte. `assets/vendor/fonts.js`
+sisaldab EB Garamondi ja Interi alamosasid base64-na ning `assets/vendor/fontkit.umd.js`
+on pdf-libil fontide manustamiseks; `assets/vendor/fonts.css` annab samad lõiked
+eelvaatele. Nii on plakatil päris tüpograafia, PDF kannab fondid ise kaasas ega sõltu
+trükikoja masinast. Vendor-failid on **git-repos** (välja arvatud `plan_out.md` ja
+`review_out.json`), sest staatiline juurutus peab töötama ilma `npm`-i ja võrguühenduseta.
+EB Garamond ja Inter on SIL OFL 1.1 litsentsi all; litsentsitekst on `assets/vendor/OFL.txt`.
 
 ## Sammud
 1. Loo klassikaliste skriptidega HTML/CSS kest, konfiguratsioon, andmemudel, salvestamine ja nelja vahekaardi navigatsioon.

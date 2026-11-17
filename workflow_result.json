@@ -1,8 +1,16 @@
 {
-  "outcome": "pass",
+  "outcome": "fail",
   "last_review": {
-    "verdict": "pass",
-    "summary": "Failide ülevaatus, HTML/JS süntaksikontrollid ning käivitatud CSV-, salvestus-, jagamis- ja mitmelehelise A2 PDF-i testid ei tuvastanud puudusi ega lisatud väliseid sõltuvusi. Kirjutuskaitse takistas brauseritestimist: 390 px kuvamine, puutejuhtimine, Network-paneel ja telefoniga QR-skannimine jäid otse kinnitamata.",
-    "issues": []
+    "verdict": "fail",
+    "summary": "Reviewed all acceptance criteria through source inspection and available runtime checks. JavaScript syntax, the 20-row CSV round trip, seating totals, paid-state persistence, QR generation and parsing, and A2 PDF generation for all three styles passed the cases exercised, including the 200-guest fixture. The read-only sandbox blocked Chromium startup, so browser-only checks for offline loading, mobile layout and touch, rendered output, downloads, and a phone scan remain unverified.",
+    "issues": [
+      "Criterion 3: Preserve valid quoted CSV fields containing line breaks. The parser treats every newline inside quotes as an unclosed quote and discards the record. Retain row-numbered recovery for genuinely malformed records.",
+      "Criterion 5: Fix the restore-purchase markup in index.html. The same label contains both the unlock-code input and the Restore button. Associate the label explicitly with the input and move the button outside it.",
+      "Criterion 6: Wait for the required browser font faces before drawing preview and PNG canvases. Render Midnight metadata with the same font style in Canvas and PDF, since Canvas requests italic while the PDF embeds upright Inter for that text.",
+      "Criterion 6: Detect unsupported characters using the embedded font's glyph coverage. A guest named `漢字 😀` produced a PDF with no warning because width measurement succeeded despite missing glyphs.",
+      "Criterion 6: Surface PNG encoding failures. If `canvas.toBlob` returns null, report which page failed and suppress the download success message.",
+      "Criterion 8: Remove the hardcoded `https://your-site.example/share.html` example from assets/app.js. PAYMENT_URL is the sole allowed hardcoded HTTP(S) address in the new application files.",
+      "Repository scope: Add all six required vendor files to Git so a clean checkout can load the app offline. Exclude the five unlisted JPEGs under assets/samples from the deliverable."
+    ]
   }
 }
