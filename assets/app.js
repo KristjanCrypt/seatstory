@@ -509,6 +509,12 @@
        line number instead of vanishing. */
     var rows = parsed.rows;
 
+    /* Editors often leave a blank line above the header. Skip those rows before
+       looking for "name,table,tags", keeping the original line numbers below. */
+    while (rows.length && rows[0].cells.every(function (c) { return !String(c).trim(); })) {
+      rows = rows.slice(1);
+    }
+
     if (!rows.length) {
       report.errors.push({ line: 1, message: 'Nothing to import — paste some CSV rows first.' });
       return report;

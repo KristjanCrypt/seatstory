@@ -2,12 +2,10 @@
   "outcome": "fail",
   "last_review": {
     "verdict": "fail",
-    "summary": "Checked all eight acceptance criteria through source inspection and available runtime tests, including HTML and JavaScript syntax, storage, seating counts, CSV, QR search, and A2 PDF generation for all three styles with 200 guests. Chromium could not launch in the sandbox, so live file and hosted behavior, 390 px layout, touch interaction, PNG downloads, network activity, and phone scanning remain unverified.",
+    "summary": "I reviewed all eight acceptance criteria against the implementation and ran HTML and JavaScript checks plus Node tests for seating counts, CSV round trips, entitlement persistence, all three A2 vector PDF styles with 200 guests, and QR payload handling. Chromium could not launch in the read-only sandbox, so live browser layout, touch, network, and download behavior remain unverified, as does scanning with a phone.",
     "issues": [
-      "Criterion 3. Report a CSV row containing only an explicitly quoted empty field (`\"\"`) with its physical line number. The importer currently discards that row silently.",
-      "Criterion 5. Replace `REPLACE_WITH_YOUR_PAYMENT_LINK` in `assets/config.js` with the configured Stripe Payment Link so the Unlock button opens a usable checkout.",
-      "Criterion 7. Reject malformed share records with blank names or extra fields and show the damaged-link message. The current decoder accepts them as valid guests.",
-      "Dependency and file scope. Remove the added Fontkit dependency, bundled fonts, and their HTML references. Use system fonts and built-in PDF fonts as required by the plan, and keep the landing page and sample images outside this implementation."
+      "Criterion 3: Skip leading blank lines before detecting the CSV header, while preserving original line numbers. A blank first line followed by `name,table,tags` currently imports a bogus guest named `name`.",
+      "Criterion 8 and the file scope: Remove Fontkit, the bundled Inter and EB Garamond fonts, and their references. Use the supplied PDF and QR libraries with system and PDF standard fonts, and remove the extra landing page and sample images from the implementation deliverables."
     ]
   }
 }
