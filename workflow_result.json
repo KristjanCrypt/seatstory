@@ -2,11 +2,12 @@
   "outcome": "fail",
   "last_review": {
     "verdict": "fail",
-    "summary": "Reviewed all eight acceptance checks against the five deliverables. HTML parsing, JavaScript syntax, and Node checks for seating counts, persistence, purchase restoration, A2 PDF generation, and QR lookup passed in the tested cases. Chromium could not launch in the sandbox, so live browser networking, 390 px layout, touch interactions, visual export fidelity, and phone scanning remain unverified.",
+    "summary": "Kontrollisin kõiki kaheksat vastuvõtukriteeriumi lähtekoodi, HTML-i parsimise, `node --check` ja Node’i käitustestidega. Kirjutuskaitstud keskkond takistas brauseri käivitamist, mistõttu jäid kinnitamata 390 px paigutus, puutealad ja puutetoimingud, brauseri Network-paneel ning QR-koodi skannimine telefoniga.",
     "issues": [
-      "CSV import silently drops a record containing only `\"\"`. Preserve explicitly quoted empty records during parsing and report the missing name with its source line number while importing the valid records.",
-      "Replace the `REPLACE_WITH_YOUR_PAYMENT_LINK` placeholder in `assets/config.js` with a working Stripe Payment Link for the $29 purchase and verify that checkout returns to the app with `?paid=1`.",
-      "Remove the extra Fontkit dependency and bundled EB Garamond and Inter fonts. Use system fonts and the PDF library’s built-in fonts as planned. Remove the out-of-scope landing page and sample images from the implementation changeset."
+      "Kriteerium 3. CSV-import jätab rea `\"\"` veateateta vahele. Erista tühi füüsiline rida jutumärkides tühja nimega kirjest ning kuva vigase kirje reanumber, jätkates kehtivate ridade importi.",
+      "Kriteerium 5. Ostunupp avab Stripe’i kohatäitja aadressi. Määra `PAYMENT_URL` toimivaks makselingiks ja kontrolli, et edukas makse suunab tagasi `?paid=1` parameetriga.",
+      "Kriteerium 6 ja plaani failipiirang. Eemalda lisatud Fontkiti teek ning Interi ja EB Garamondi fondifailid. Kasuta väljundites olemasolevaid PDF- ja QR-teeke, PDF-i sisefonte ja süsteemifonte. Eemalda ka plaanivälised `landing.html` ja `assets/samples/` failid.",
+      "Kriteerium 7. Vigaste UTF-8 baitidega QR-fragment võetakse vastu ja külalise nimes kuvatakse asendusmärk `�`. Kasuta ranget UTF-8 dekodeerimist ja kuva dekodeerimisvea korral vigase jagamislingi teade."
     ]
   }
 }

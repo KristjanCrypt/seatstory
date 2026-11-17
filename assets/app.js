@@ -1525,7 +1525,9 @@
   }
 
   function utf8String(bytes) {
-    if (window.TextDecoder) { return new TextDecoder().decode(bytes); }
+    /* With fatal:true a fragment of broken bytes throws instead of quietly
+       rendering replacement characters in the guest's name. */
+    if (window.TextDecoder) { return new TextDecoder('utf-8', { fatal: true }).decode(bytes); }
     var bin = '';
     for (var i = 0; i < bytes.length; i++) { bin += String.fromCharCode(bytes[i]); }
     return decodeURIComponent(escape(bin));
