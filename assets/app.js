@@ -504,9 +504,10 @@
     var parsed = parseCsv(raw);
     var report = { added: 0, errors: parsed.errors.slice(), misses: [] };
 
-    var rows = parsed.rows.filter(function (r) {
-      return !(r.cells.length === 1 && String(r.cells[0]).trim() === '');
-    });
+    /* Nothing to filter here: the parser already drops genuinely blank lines,
+       and a row written as "" must reach the loop so it can be reported with its
+       line number instead of vanishing. */
+    var rows = parsed.rows;
 
     if (!rows.length) {
       report.errors.push({ line: 1, message: 'Nothing to import — paste some CSV rows first.' });
@@ -1564,9 +1565,12 @@
     var guests = [];
     for (var i = 0; i < data.g.length; i++) {
       var row = data.g[i];
-      if (!Array.isArray(row) || row.length < 2 || typeof row[0] !== 'string' || typeof row[1] !== 'number') {
+      /* Exactly [name, tableIndex]; a blank name or a third field means the
+         fragment was not produced by this app, so the link is treated as damaged. */
+      if (!Array.isArray(row) || row.length !== 2 || typeof row[0] !== 'string' || typeof row[1] !== 'number') {
         return null;
       }
+      if (!row[0].trim()) { return null; }
       if (!isFinite(row[1]) || Math.floor(row[1]) !== row[1] || row[1] < -1 || row[1] >= data.t.length) {
         return null;
       }

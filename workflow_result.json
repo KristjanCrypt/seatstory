@@ -2,12 +2,12 @@
   "outcome": "fail",
   "last_review": {
     "verdict": "fail",
-    "summary": "Kontrollisin kõiki kaheksat vastuvõtukriteeriumi lähtekoodi, HTML-i parsimise, `node --check` ja Node’i käitustestidega. Kirjutuskaitstud keskkond takistas brauseri käivitamist, mistõttu jäid kinnitamata 390 px paigutus, puutealad ja puutetoimingud, brauseri Network-paneel ning QR-koodi skannimine telefoniga.",
+    "summary": "Checked all eight acceptance criteria through source inspection and available runtime tests, including HTML and JavaScript syntax, storage, seating counts, CSV, QR search, and A2 PDF generation for all three styles with 200 guests. Chromium could not launch in the sandbox, so live file and hosted behavior, 390 px layout, touch interaction, PNG downloads, network activity, and phone scanning remain unverified.",
     "issues": [
-      "Kriteerium 3. CSV-import jätab rea `\"\"` veateateta vahele. Erista tühi füüsiline rida jutumärkides tühja nimega kirjest ning kuva vigase kirje reanumber, jätkates kehtivate ridade importi.",
-      "Kriteerium 5. Ostunupp avab Stripe’i kohatäitja aadressi. Määra `PAYMENT_URL` toimivaks makselingiks ja kontrolli, et edukas makse suunab tagasi `?paid=1` parameetriga.",
-      "Kriteerium 6 ja plaani failipiirang. Eemalda lisatud Fontkiti teek ning Interi ja EB Garamondi fondifailid. Kasuta väljundites olemasolevaid PDF- ja QR-teeke, PDF-i sisefonte ja süsteemifonte. Eemalda ka plaanivälised `landing.html` ja `assets/samples/` failid.",
-      "Kriteerium 7. Vigaste UTF-8 baitidega QR-fragment võetakse vastu ja külalise nimes kuvatakse asendusmärk `�`. Kasuta ranget UTF-8 dekodeerimist ja kuva dekodeerimisvea korral vigase jagamislingi teade."
+      "Criterion 3. Report a CSV row containing only an explicitly quoted empty field (`\"\"`) with its physical line number. The importer currently discards that row silently.",
+      "Criterion 5. Replace `REPLACE_WITH_YOUR_PAYMENT_LINK` in `assets/config.js` with the configured Stripe Payment Link so the Unlock button opens a usable checkout.",
+      "Criterion 7. Reject malformed share records with blank names or extra fields and show the damaged-link message. The current decoder accepts them as valid guests.",
+      "Dependency and file scope. Remove the added Fontkit dependency, bundled fonts, and their HTML references. Use system fonts and built-in PDF fonts as required by the plan, and keep the landing page and sample images outside this implementation."
     ]
   }
 }
