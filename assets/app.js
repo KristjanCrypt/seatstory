@@ -286,15 +286,13 @@
     function squeeze(s) { return String(s || '').replace(/\s+/g, ' ').trim().toLowerCase(); }
     var exact = String(label || '').trim().toLowerCase();
     if (!exact) { return null; }
-    var i;
-    /* Two tables may legitimately be called "Table 1" and "Table  1"; only fall
-       back to the squeezed form when exactly one table matches it. */
-    for (i = 0; i < state.tables.length; i++) {
+    /* Exact label only: "Table  1" with a double space is a different label than
+       "Table 1", and a guest the user meant for the second one must stay
+       unassigned rather than quietly land on the first. */
+    for (var i = 0; i < state.tables.length; i++) {
       if (String(state.tables[i].label || '').trim().toLowerCase() === exact) { return state.tables[i].id; }
     }
-    var loose = squeeze(label);
-    var hits = state.tables.filter(function (t) { return squeeze(t.label) === loose; });
-    return hits.length === 1 ? hits[0].id : null;
+    return null;
   }
 
   function stats() {
