@@ -2,14 +2,12 @@
   "outcome": "fail",
   "last_review": {
     "verdict": "fail",
-    "summary": "Reviewed all eight acceptance checks. HTML parsing, JavaScript syntax, seating counts, purchase persistence, ordinary CSV round-tripping, three multipage A2 PDF builds, and QR payload handling passed the checks I could run. The sandbox prevented Chromium from starting, so live browser, touch, download, network-panel, and phone-scan checks remain unverified.",
+    "summary": "Kontrollisin kõiki kriteeriume lähtekoodist ning käivitasin HTML-i, JavaScripti, CSV, salvestuse, istekohtade loenduse, PDF-i ja QR-andmete kontrollid. Kõigi kolme stiili 200 külalise PDF-id olid mitmeleheküljelised A2-formaadis ja sisaldasid tekstikäske, kuid keskkond blokeeris brauseri käivitamise, mistõttu päris brauseri, Network-paneeli ja telefoniga skannimise katsed jäid kinnitamata.",
     "issues": [
-      "Criterion 1. Serve the working builder at index.html on disk and on a static host. The current index.html serves a landing page, and the builder runs at app.html.",
-      "Criterion 3. Recover malformed CSV records without discarding valid rows between them. Two unclosed quotes on separate lines swallowed a valid row and produced only one row error. The fallback parser also imported a field with junk after its closing quote. Report each malformed row at its original line number.",
-      "Criterion 4. Wrap long unbroken table names in CSV import messages and constrain the guest-view grid to the viewport. The report currently places user-supplied table names in an unconstrained grid track without a wrap rule.",
-      "Criterion 5. Configure a working PAYMENT_URL. The purchase button opens the placeholder Stripe URL.",
-      "Criterion 7. Size the QR quiet zone in modules. The fixed 6 mm white border provides fewer than four modules for low-density codes, where the surrounding poster background can interfere with scanning.",
-      "Criterion 8. Remove the out-of-plan landing page, notes, sample images, fontkit, and custom font assets. Use the allowed system and built-in PDF fonts with the existing PDF and QR libraries."
+      "Kriteerium 3. Paranda CSV veataaste nii, et üks vigase jutumärgistusega kirje ei jätaks vahele kehtivat mitmerealist kirjet. Katses jättis vigane kirje `\"bad\"junk,,` välja ka sellele eelnenud kehtiva neljarealise jutumärkides nime ja teatas selle ridadel ekslikult vigadest.",
+      "Kriteerium 4. Luba CSV impordiraportis pikkadel tundmatutel lauanimedel murduda. Raporti tekstil puudub pika sõna murdmine ning ümbritsev `details` peidab üle ulatuva veateate 390 px vaates.",
+      "Kriteerium 5. Asenda `assets/config.js` Stripe’i kohatäitja toimiva ostulingiga. Ostunupp avab praegu uues aknas aadressi `https://buy.stripe.com/REPLACE_WITH_YOUR_PAYMENT_LINK`.",
+      "Kriteerium 8 ja plaani failipiirang. Eemalda rakendusest lisatud Fontkit ning Interi ja EB Garamondi fondipaketid. Kasuta eelvaates ja PNG-s süsteemifonte ning PDF-is sisefonte. Kõrvalda ka plaani faililoendisse mittekuuluvad maandumisleht, näidispildid ja märkmefail."
     ]
   }
 }

@@ -474,10 +474,17 @@
        reading preserves more guests; a legal multi-line field has no errors and
        never reaches this comparison. */
     var byLine = parseCsvLines(src);
-    var kept = function (list) {
-      return list.filter(function (r) { return !(r.cells.length === 1 && String(r.cells[0]).trim() === ''); }).length;
+    /* Compare how many rows actually look like records: the same number of
+       columns as the header. The line reader shreds a legal quoted name that
+       spans lines into one-column fragments, so it loses this count even though
+       it produces more rows. */
+    var width = multi.rows.length ? multi.rows[0].cells.length : 0;
+    var usable = function (list) {
+      return list.filter(function (r) {
+        return r.cells.length === width && String(r.cells[0]).trim() !== '';
+      }).length;
     };
-    if (kept(byLine.rows) > kept(multi.rows)) {
+    if (usable(byLine.rows) > usable(multi.rows)) {
       return { rows: byLine.rows, errors: byLine.errors };
     }
     return { rows: multi.rows, errors: multi.errors };

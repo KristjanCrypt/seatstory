@@ -211,8 +211,13 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .details[open] > summary::after { content: "–"; }
 .details__body { display: grid; gap: 10px; padding: 0 12px 14px; }
 
-.report { display: grid; gap: 6px; font-size: 14px; }
-.report__line { padding: 8px 10px; border-radius: 9px; background: var(--sage-soft); color: #3f4a33; }
+.report { display: grid; gap: 6px; font-size: 14px; min-width: 0; }
+/* A table label can be sixty characters with no space in it; without this the
+   line widens its grid track and the whole card scrolls sideways at 390 px. */
+.report__line {
+  padding: 8px 10px; border-radius: 9px; background: var(--sage-soft); color: #3f4a33;
+  min-width: 0; overflow-wrap: anywhere; word-break: break-word;
+}
 .report__line--error { background: var(--danger-soft); color: var(--danger); }
 .report__line--ok { background: var(--sage-soft); color: var(--sage-dark); }
 
