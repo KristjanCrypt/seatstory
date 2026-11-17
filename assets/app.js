@@ -379,6 +379,7 @@
     var quoteLine = 1;
     var rowStartIdx = 0;
     var danglingQuote = false;
+    var touched = false;
     var i = 0;
 
     function pushRow() {
@@ -394,12 +395,14 @@
       bad = false;
       rowLine = line;
       rowStartIdx = i + 1;
+      touched = false;
     }
 
     while (i < src.length) {
       var ch = src.charAt(i);
 
       if (inQuotes) {
+        touched = true;
         if (ch === '"') {
           if (src.charAt(i + 1) === '"') { field += '"'; i += 2; continue; }
           inQuotes = false;
@@ -413,6 +416,7 @@
         continue;
       }
 
+      touched = true;
       if (ch === '"') {
         if (!bad && !justClosed && !field.replace(/\s/g, '')) { inQuotes = true; quoteLine = line; i++; continue; }
         bad = true;
@@ -421,6 +425,7 @@
         continue;
       }
 
+      touched = true;
       if (ch === ',') { row.push(field); field = ''; justClosed = false; i++; continue; }
       if (ch === '\n') { line++; pushRow(); i++; continue; }
 
@@ -444,7 +449,9 @@
         sub.rows.forEach(function (r) { rows.push({ line: r.line + offset, cells: r.cells }); });
         sub.errors.forEach(function (e) { errors.push({ line: e.line + offset, message: e.message }); });
       }
-    } else if (field !== '' || row.length) {
+    } else if (touched || field !== '' || row.length) {
+      /* A row that is just "" still counts: the importer must report it as a
+         missing name instead of dropping it without a word. */
       pushRow();
     }
 
